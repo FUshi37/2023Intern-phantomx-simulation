@@ -1,0 +1,2 @@
+phantomx_control:phantomx_description:phantomx_gazebo
+-DCATKIN_DEVEL_PREFIX=/home/yangzhe/Intern/simulation/examples/phantomx_gazebo/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/yangzhe/Intern/simulation/examples/phantomx_gazebo/catkin_ws/install -G Unix Makefiles

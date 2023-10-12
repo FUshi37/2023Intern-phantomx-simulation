@@ -1,0 +1,8 @@
+prefix=/home/yangzhe/Intern/simulation/examples/phantomx_gazebo/catkin_ws/devel
+
+Name: phantomx_gazebo
+Description: Description of phantomx_gazebo
+Version: 0.1.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: sensor_msgs gazebo_ros hector_gazebo_plugins
