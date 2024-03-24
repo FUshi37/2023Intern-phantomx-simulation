@@ -1,8 +1,0 @@
-prefix=/home/yangzhe/Intern/simulation/examples/phantomx_gazebo/catkin_ws/install
-
-Name: phantomx_control
-Description: Description of phantomx_control
-Version: 1.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

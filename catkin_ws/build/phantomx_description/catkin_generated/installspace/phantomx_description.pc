@@ -1,8 +1,0 @@
-prefix=/home/yangzhe/Intern/simulation/examples/phantomx_gazebo/catkin_ws/install
-
-Name: phantomx_description
-Description: Description of phantomx_description
-Version: 0.1.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
