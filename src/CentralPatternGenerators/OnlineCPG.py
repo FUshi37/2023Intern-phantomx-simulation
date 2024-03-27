@@ -166,9 +166,9 @@ class OnlinePhantomxCPG(object):
         # 不同腿关节间耦合
             
         # 将dy[0]保存到文件中
-        with open("output.txt", 'a') as file:
-            file.write(str(dy[0]))
-            file.write("\n")
+        # with open("output.txt", 'a') as file:
+        #     file.write(str(dy[0]))
+        #     file.write("\n")
         return dx[0], dy[0], dx[1], dy[1], dx[2], dy[2], dx[3], dy[3], dx[4], dy[4], dx[5], dy[5], \
                 dx[6], dy[6], dx[7], dy[7], dx[8], dy[8], dx[9], dy[9], dx[10], dy[10], dx[11], dy[11], \
                 dx[12], dy[12], dx[13], dy[13], dx[14], dy[14], dx[15], dy[15], dx[16], dy[16], dx[17], dy[17]

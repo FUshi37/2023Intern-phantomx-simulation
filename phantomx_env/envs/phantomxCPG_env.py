@@ -72,13 +72,13 @@ class PhantomxGymEnv(gym.Env):
         self._cam_yaw = 0
         self._cam_pitch = -30
         self._last_frame_time = 0.0
-        self.control_time_step = 0.01
-        # self.control_time_step = 1.0 / FREC
+        # self.control_time_step = 0.01
+        self.control_time_step = 1.0 / FREC
         self._distance_limit = distance_limit
         self._forward_reward_cap = forward_reward_cap
         self._action_change_cap = 0
-        self._time_step = 0.01
-        # self._time_step = 1.0 / FREC
+        # self._time_step = 0.01
+        self._time_step = 1.0 / FREC
         self._max_episode_steps = 1024
         self._velrewardlist = []
         
@@ -118,7 +118,7 @@ class PhantomxGymEnv(gym.Env):
         self.seed()
         self.reset()
 
-        self._action_bound = 3.0
+        self._action_bound = 1.0
         # self._action_bound = 1.0
         # action_dim = NUM_MOTORS
         action_dim = 12
@@ -140,6 +140,7 @@ class PhantomxGymEnv(gym.Env):
         self.CPGModule = PhantomxCPG()
         self.ActionModule = ActionModuleSelector()
         self.OnlineCPGModule = OnlinePhantomxCPG()
+        
 
     def setMotorCommand(self, motorcommand):
         self._motorcommand = motorcommand
@@ -510,3 +511,7 @@ class PhantomxGymEnv(gym.Env):
 
     def _get_observation_dimension(self):
         return len(self._get_observation())
+    
+    # todo
+    # 控制帧率调回100Hz
+    # 学习环境不Normalize
