@@ -285,23 +285,23 @@ class Phantomx:
             if i%3 == 0:
                 # joint_angle[i] = self.map_range(motorcommands[i], -1.0, 1.0, actinons[i*4//3], actinons[i*4//3+1])
                 # 直接学映射系数
-                # joint_angle[i] = actinons[i//3] * motorcommands[i]
+                joint_angle[i] = actinons[i//3] * 0.6 * motorcommands[i]
                 # 学映射系数变化值
-                joint_angle[i] = (actinons[i//3]+Initial_Action[i//3]) * motorcommands[i]
+                # joint_angle[i] = (actinons[i//3]+Initial_Action[i//3]) * motorcommands[i]
                 # joint_angle[i] = (actinons[i//3]/3.0+Initial_Action[i//3]) * motorcommands[i]
             elif i%3 == 1:
                 # joint_angle[i] = self.map_range(motorcommands[i], -0.0, 2.0, actinons[(i-1)*4//3+2], actinons[(i-1)*4//3+3])
                 # 直接学映射系数
-                # joint_angle[i] = actinons[(i-1)//3 + 6] * motorcommands[i] + B2
+                joint_angle[i] = actinons[(i-1)//3 + 6] * 0.35 * motorcommands[i] + B2
                 # 学映射系数变化值
-                joint_angle[i] = (actinons[(i-1)//3 + 6]+Initial_Action[(i-1)//3 + 6]) * motorcommands[i] + B2
+                # joint_angle[i] = (actinons[(i-1)//3 + 6]+Initial_Action[(i-1)//3 + 6]) * motorcommands[i] + B2
                 # joint_angle[i] = (actinons[(i-1)//3 + 6]/3.0+Initial_Action[(i-1)//3 + 6]) * motorcommands[i] + B2
             else:
                 # joint_angle[i] = self.map_range(motorcommands[i], -0.0, 2.0, actinons[(i-2)*4//3+3], actinons[(i-2)*4//3+2])
                 # 直接学映射系数
-                # joint_angle[i] = -actinons[(i-2)//3 + 6] * motorcommands[i] + B3
+                joint_angle[i] = -actinons[(i-2)//3 + 6] * 0.35 * motorcommands[i] + B3
                 # 学映射系数变化值
-                joint_angle[i] = -(actinons[(i-2)//3 + 6]+Initial_Action[(i-2)//3 + 6]) * motorcommands[i] + B3
+                # joint_angle[i] = -(actinons[(i-2)//3 + 6]+Initial_Action[(i-2)//3 + 6]) * motorcommands[i] + B3
                 # joint_angle[i] = -(actinons[(i-2)//3 + 6]/3.0+Initial_Action[(i-2)//3 + 6]) * motorcommands[i] + B3
                 # joint_angle[i] = 0.3
         return joint_angle

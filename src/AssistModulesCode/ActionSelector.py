@@ -60,6 +60,16 @@ class ActionModuleSelector(object):
                                self._pos_command[15][index+self._command_start_index], self._pos_command[16][index+self._command_start_index], self._pos_command[17][index+self._command_start_index]])
             return action
         
+        # 2 -> only hip motor moved by aim_leg_pos
+        elif action_mode == 2:
+            action = np.array([self._pos_command[0][index+self._command_start_index], 0, 0,
+                                 self._pos_command[3][index+self._command_start_index], 0, 0,
+                                 self._pos_command[6][index+self._command_start_index], 0, 0,
+                                 self._pos_command[9][index+self._command_start_index], 0, 0,
+                                 self._pos_command[12][index+self._command_start_index], 0, 0,
+                                 self._pos_command[15][index+self._command_start_index], 0, 0])
+            return action
+
         # -1 -> all motor moved by aim_leg_pos, but only one leg move at a time
         # TOTAL_TIME must be multiple of six
         elif action_mode == -1:

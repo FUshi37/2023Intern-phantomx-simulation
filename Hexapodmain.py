@@ -8,7 +8,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize, SubprocV
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.env_util import make_vec_env
-from phantomx_env.envs.phantomxCPG_Trackline_env import PhantomxGymEnv
+from phantomx_env.envs.hexapod_env import PhantomxGymEnv
 
 from src.CentralPatternGenerators.Hpof import PhantomxCPG
 from src.AssistModulesCode.MatPlotAssitor import PlotModuleAssistor
@@ -56,19 +56,29 @@ class SaveModelCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         if self.n_calls % self.save_freq == 0:
-            self.model.save(os.path.join(self.save_path + "model/", f"modelV2_{self.num_timesteps}.zip"))
+            self.model.save(os.path.join(self.save_path + "model/", f"model3_{self.num_timesteps}.zip"))
         return True
 
 def make_env():
     env = PhantomxGymEnv()
     return env
-# def make_env
+def make_test_env():
+    env = PhantomxGymEnv(render=True)
+    return env
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
     current_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    # tb_log_name = "PPO-" + current_time
+    # 100HZ控制帧率 + 标准化环境
+    # tb_log_name = "PPO-VECNOR-100HZ"
+
     # 100HZ控制帧率 + 非标准化环境
-    tb_log_name = "PPO-TrackVelocity-100HZ"
+    # tb_log_name = "PPO-VECWITHOUTOBS-100HZ"
+
+    # 240HZ控制帧率 + 标准化环境
+    tb_log_name = "PPO-2024-03-26-00-08-53"
+    env_log_name = tb_log_name
 
     if torch.cuda.is_available():
         # 获取当前使用的设备
@@ -83,45 +93,51 @@ if __name__ == "__main__":
 
     log_dir = "/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/"
 # -----------------------------加载模型检验时注释该部分--------------------------------
-    # env = PhantomxGymEnv()
+    # # env = PhantomxGymEnv()
 
-    # env = make_vec_env(lambda: env, n_envs=num_envs, monitor_dir=log_dir + "tensorboard_log/", seed=0, wrapper_kwargs=dict(), vec_env_cls=SubprocVecEnv)
+    # # env = make_vec_env(lambda: env, n_envs=num_envs, monitor_dir=log_dir + "tensorboard_log/", seed=0, wrapper_kwargs=dict(), vec_env_cls=SubprocVecEnv)
     
-    # env = SubprocVecEnv(envs)
+    # # env = SubprocVecEnv(envs)
 
-    env = SubprocVecEnv([make_env for _ in range(num_envs)])
+    # env = SubprocVecEnv([make_env for _ in range(num_envs)])
 
     # env = VecNormalize(env, norm_obs=True)
+    # # env = VecNormalize(env)
 
-    env = VecMonitor(env)
+    # env = VecMonitor(env)
 
-    callback = SaveModelCallback(save_freq=5e4, save_path=log_dir)
+    # callback = SaveModelCallback(save_freq=5e4, save_path=log_dir)
 
-    policy_kwargs = dict(activation_fn=torch.nn.Tanh,
-                        net_arch=[dict(pi=[256, 128], vf=[256, 128])])
+    # policy_kwargs = dict(activation_fn=torch.nn.Tanh,
+    #                     net_arch=[dict(pi=[256, 128], vf=[256, 128])])
 
-    # model = PPO("MlpPolicy", env, device=device, policy_kwargs=policy_kwargs, learning_rate=2.5e-4, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
+    # # model = PPO("MlpPolicy", env, device=device, policy_kwargs=policy_kwargs, learning_rate=2.5e-4, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
 
-    model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
-    model.learn(
-        # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run"
-        total_timesteps=8192*2000, reset_num_timesteps=True, tb_log_name=tb_log_name, callback=callback
-        # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run", callback=callback
-    )
+    # model = PPO.load(log_dir + "ppo_phantomx", env=env)
+    # model.learn(
+    #     # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run"
+    #     total_timesteps=8192*20, reset_num_timesteps=False, tb_log_name=tb_log_name, callback=callback
+    #     # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run", callback=callback
+    # )
+    # # 保存模型
+    # model.save(log_dir + "ppo_phantomx")
+    # # 保存标准化环境
+    # env.save(log_dir + env_log_name)
 
-    model.save(log_dir + "ppo_phantomx_trackvel")
+    # print("Model saved!")
 
-    print("Model saved!")
-
-    del model, env
+    # del model, env
 # -----------------------------加载模型检验时注释该部分--------------------------------
-    env = PhantomxGymEnv(render=True, set_goal_flag=True)
-
-    model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
+    # 定义正常环境（无标准化）
+    env = PhantomxGymEnv(render=True)
+    # 读入标准化环境
+    # env = SubprocVecEnv([make_test_env for _ in range(1)])
+    # env = VecNormalize.load(log_dir + env_log_name, env)
+    
+    model = PPO.load(log_dir + "ppo_phantomx", env=env)
+    # model = PPO.load(log_dir + "model/" + "model3_12800000", env=env)
     # model = PPO.load(log_dir + "model_20796160", env=env)
     # model = PPO.load(log_dir + "zip/ppo_phantomx_jump", env=env)
-
-    env.set_goal_state([0.0, 0.5, 0.0])
 
     obs = env.reset()
 
@@ -146,8 +162,49 @@ if __name__ == "__main__":
                         1.86400333, -0.74193836,  1.86400333, -0.74193836, -1.97166912,  0.36889423,
                         -1.97166912, 0.36889423,  1.86400333, -0.74193836,  1.86400333, -0.74193836]).reshape(1, -1)
 
+    LegData = LoadData("90deg/90deg")
 # -----------------------------训练时注释该部分--------------------------------
+
     # for i in range(TIME):
+    #     # action, _states = model.predict(obs)
+        
+    #     # # online CPG
+    #     # t = np.linspace(i*0.01, i*0.01+0.01, 2)
+    #     # data = OnlineCPGModule.online_calculate(t, initial_values=history_data[-1, :])
+    #     # if (len(data)==2):
+    #     #     data = data[1:].reshape(1, -1)
+    #     # history_data = np.vstack((history_data, data))
+
+    #     # action = ActionModule.SelectAction(action_mode=10, t=t, data=data[-1, :])
+    #     # onlie CPG end
+
+    #     # action = ActionModule.SelectAction(action_mode=0, aim_leg_pos=LegData, index=i, command_start_index=0)
+    #     action = ActionModule.SelectAction(action_mode=2, aim_leg_pos=LegData, index=i, command_start_index=0)
+    #     # action = ActionModule.SelectAction(action_mode=-1, aim_leg_pos=LegData, index=i, command_start_index=5000, TOTAL_TIME=TIME)
+    #     # action = ActionModule.SelectAction(action_mode=1)
+        
+    #     # print("action", action)
+    #     obs, rewards, dones, info = env.step(action)
+    #     # print(rewards)
+    #     # print(dones)
+    #     # base_height = env.phantomx.GetBaseHigh()
+    #     # print("base_height=", base_height)
+    #     # orientation = env.phantomx.GetBaseOrientation()
+    #     # print("TrueMotroAngle: ", env.phantomx.GetTrueMotorAngles())
+    #     # print("orientation: ", orientation)
+    #     # sopActions = env.phantomx.ConvertActionToLegAngle_Tripod(action)
+        
+    #     # motor_angle = env.phantomx.GetTrueMotorAngles()
+    #     # TrueMotorAngle.append(motor_angle)
+
+    while True:
+        # action = [0, 0, 0, 0, 0, 0, -0.25, -0.25, -0.25, 0.25, 0.25, 0.25]
+        # action = [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+        action = [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.25, -0.25, -0.25, 0.25, 0.25, 0.25]
+        env.step(action=action)
+        
+    # for i in range(TIME):
+    
     #     action, _states = model.predict(obs)
     #     # action = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     #     # action = [0.523599, 0.523599, 0.523599, -0.523599, -0.523599, -0.523599, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
@@ -157,28 +214,28 @@ if __name__ == "__main__":
     #     # print("action", action)
     #     # env.setMotorCommand(motorcommands)
 
-    #     obs, rewards, dones, info = env.step(action=action)
+    #     obs, rewards, dones, info = env.step(action)
     #     # print("action:", action)
     #     # print(rewards)
     #     # print(dones)
-    #     base_height = env.phantomx.GetBaseHigh()
-    #     # print("base_height=", base_height)
-    #     orientation = env.phantomx.GetBaseOrientation()
-    #     base_position = env.phantomx.GetBasePosition()
-    #     robot_linearvel = env.phantomx.GetTrueBodyLinearVelocity()
-    #     robot_angularvel = env.phantomx.GetTrueBodyAngularVelocity()
-    #     motor_vel = env.phantomx.GetTrueMotorVelocities()
-    #     # print("motor_vel: ", motor_vel)
-    #     print("linearvel: ", robot_linearvel)
-    #     # print("angvel: ", robot_angularvel)
-    #     # print("base_position: ", base_position)
-    #     # print("TrueMotroAngle: ", env.phantomx.GetTrueMotorAngles())
-    #     # print("orientation: ", orientation)
-    #     # sopActions = env.phantomx.ConvertActionToLegAngle_Tripod(action)
+    #     # base_height = env.phantomx.GetBaseHigh()
+    #     # # print("base_height=", base_height)
+    #     # orientation = env.phantomx.GetBaseOrientation()
+    #     # base_position = env.phantomx.GetBasePosition()
+    #     # robot_linearvel = env.phantomx.GetTrueBodyLinearVelocity()
+    #     # robot_angularvel = env.phantomx.GetTrueBodyAngularVelocity()
+    #     # motor_vel = env.phantomx.GetTrueMotorVelocities()
+    #     # # print("motor_vel: ", motor_vel)
+    #     # # print("linearvel: ", robot_linearvel)
+    #     # # print("angvel: ", robot_angularvel)
+    #     # # print("base_position: ", base_position)
+    #     # # print("TrueMotroAngle: ", env.phantomx.GetTrueMotorAngles())
+    #     # # print("orientation: ", orientation)
+    #     # # sopActions = env.phantomx.ConvertActionToLegAngle_Tripod(action)
         
-    #     motor_angle = env.phantomx.GetTrueMotorAngles()
+    #     # motor_angle = env.phantomx.GetTrueMotorAngles()
     #     Rewards.append(rewards)
-    #     TrueMotorAngle.append(motor_angle)
+    #     # TrueMotorAngle.append(motor_angle)
 
     #     # BaseOrientation.append(orientation)
     #     # TrueBodyVelocity.append(robot_linearvel)
@@ -227,25 +284,17 @@ if __name__ == "__main__":
 
 
     # # 绘制关节角度随时间变化的图像
-    # TrueLegAngle = [ [] for _ in range(18) ]
+    # # TrueLegAngle = [ [] for _ in range(18) ]
 
-    # for i in range(TIME):
-    # # for i in range(100):
-    #     for j in range(18):
-    #         TrueLegAngle[j].append(TrueMotorAngle[i][j])
+    # # for i in range(TIME):
+    # # # for i in range(100):
+    # #     for j in range(18):
+    # #         TrueLegAngle[j].append(TrueMotorAngle[i][j])
 
-    # PltModule.plot(data=TrueLegAngle, plt_mode=0)
-    # PltModule.plot(data=TrueLegAngle, plt_mode=1)
-    # PltModule.plot(data=TrueLegAngle, plt_mode=2)
+    # # PltModule.plot(data=TrueLegAngle, plt_mode=0)
+    # # PltModule.plot(data=TrueLegAngle, plt_mode=1)
+    # # PltModule.plot(data=TrueLegAngle, plt_mode=2)
     # PltModule.plot(data=Rewards, plt_mode=10)
-    # # PltModule.plot(data=Rewards, plt_mode=11, save_name="ForwardReward")
+    # # # PltModule.plot(data=Rewards, plt_mode=11, save_name="ForwardReward")
     # plt.close('all')
 # -----------------------------训练时注释该部分--------------------------------
-
-    #todo
-    # 改action space
-    # 改reward增加角速度
-    # 用pybullet自带的速度函数
-    # 改observation去掉position
-
-    # step一个cpg改变副值

@@ -25,7 +25,9 @@ RENDER_HEIGHT = 360
 RENDER_WIDTH = 480
 NUM_MOTORS = 18
 LISTLEN = 500
-FREC = 100.0
+FREC = 100.0 
+REWARD_FACTOR = 0.1
+COURSE_CNT = 0
 
 class LimitedList:
     def __init__(self, limit):
@@ -50,6 +52,7 @@ class PhantomxGymEnv(gym.Env):
 	
     def __init__(self, urdf_root=pybullet_data.getDataPath(), 
                  render=False,
+                 set_goal_flag=False,
                  distance_limit=3,
                  forward_reward_cap=float("inf"), 
                  x_velocity_weight = 1.0,# 50
@@ -69,6 +72,7 @@ class PhantomxGymEnv(gym.Env):
         self._norm_observation = []
         self._env_step_counter = 0
         self._is_render = render
+        self._set_goal_flag = set_goal_flag
         self._cam_dist = 2.0
         self._cam_yaw = 0
         self._cam_pitch = -30
@@ -80,6 +84,7 @@ class PhantomxGymEnv(gym.Env):
         self._time_step = 1.0 / FREC
         self._max_episode_steps = 1024
         self._velrewardlist = []
+        self._last_reward = -np.inf
         
         self.initial_action = [-0.523599, -0.523599, -0.523599, 0.523599, 0.523599, 0.523599, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
 
@@ -99,6 +104,7 @@ class PhantomxGymEnv(gym.Env):
         self._goal_posture = []
         self._goal_velocity = []
         self._goal_state = [0, 0, 0]#x y velocity direction and magnitude
+        self.test_goal_state = [0, 0, 0]
         
         # self._objective_weights = [distance_weight, drift_weight, energy_weight, shake_weight, height_weight, shakevel_weight]
         self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight]
@@ -160,7 +166,7 @@ class PhantomxGymEnv(gym.Env):
           info: A dictionary that stores diagnostic information.
         """
         self._last_base_position = self.phantomx.GetBasePosition()
-
+        # print("goal_state", self._goal_state)
         # print("action: ", action)
         self._pybullet_client.resetDebugVisualizerCamera(self._cam_dist, self._cam_yaw,
                                                     self._cam_pitch, self.phantomx.GetBasePosition())
@@ -208,14 +214,20 @@ class PhantomxGymEnv(gym.Env):
             self.phantomx.Terminate()
         
         observation = np.array(self._get_observation()).astype(np.float32)
+
         reward = self._reward(observation)
+
         info = {}
         return observation, reward, done, info
         
     def reset(self):
 	    #重新初始化
         for i in range(3):
-            self._goal_state[i] = random.uniform(-3, 3)
+            self._goal_state[i] = random.uniform(-2, 2)
+        if self._set_goal_flag:
+            self._goal_state = self.test_goal_state
+        # print("set_goal_flag: ", self._set_goal_flag)
+        # print("goal_state: ", self._goal_state)
             # if (i == 0 or i == 1):
             #     self._goal_state[i] = random.uniform(-np.pi, np.pi)
             # else:
@@ -298,10 +310,11 @@ class PhantomxGymEnv(gym.Env):
         return [seed]
 
     def reward_function(self, desired_x, current_x):
-        return np.e**(-abs(desired_x - current_x) / 1.0)
+        return np.e**(-abs(desired_x - current_x) / REWARD_FACTOR)
     
     def penalty_function(self, desired_x, current_x):
         return -(current_x - desired_x)**2
+        # return -abs(current_x - desired_x)
 
     # 只有x方向平均速度
     def _reward(self, observations):
@@ -481,3 +494,6 @@ class PhantomxGymEnv(gym.Env):
 
     def _get_observation_dimension(self):
         return len(self._get_observation())
+    
+    def set_goal_state(self, goal_state):
+        self.test_goal_state = goal_state

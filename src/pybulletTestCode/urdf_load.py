@@ -9,7 +9,8 @@ floor = p.loadURDF("plane.urdf")
 startPos = [0,0,0.12]
 startOrientation = [0.707, 0, 0., 0.707]
 # robot = p.loadURDF("../../hexapod_34/urdf/hexapod_34.urdf", startPos)
-robot = p.loadURDF("../../ObstacleReg/urdf/ObstacleReg.urdf", startPos, startOrientation, useFixedBase=True)
+robot = p.loadURDF("hexapod_34/urdf/hexapod_34.urdf", startPos)
+# robot = p.loadURDF("../../ObstacleReg/urdf/ObstacleReg.urdf", startPos, startOrientation, useFixedBase=True)
 
 # numJoints = p.getNumJoints(robot)
 # p.changeVisualShape(robot,-1,rgbaColor=[1,1,1,1])

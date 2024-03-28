@@ -9,25 +9,33 @@ import math
 import numpy as np
 
 
-INIT_POSITION = [0, 0, 0.18]
-INIT_ORIENTATION = [0, 0, 0, 1]
+INIT_POSITION = [0, 0, 0.15]
+INIT_ORIENTATION = [0, 0, 0.707, 0.707]
 LEG_POSITION = ["leg1", "leg2", "leg3", "leg4", "leg5", "leg6"]
 MOTOR_NAMES = [
     "l1_bc", "l1_cf", "l1_ft",
     "l2_bc", "l2_cf", "l2_ft",
     "l3_bc", "l3_cf", "l3_ft",
-    "l4_bc", "l4_cf", "l4_ft",
-    "l5_bc", "l5_cf", "l5_ft",
-    "l6_bc", "l6_cf", "l6_ft",
+    "r1_bc", "r1_cf", "r1_ft",
+    "r2_bc", "r2_cf", "r2_ft",
+    "r3_bc", "r3_cf", "r3_ft",
 ]
 LINK_NAMES = [
     "l1_bc", "l1_cf", "l1_ft",
     "l2_bc", "l2_cf", "l2_ft",
     "l3_bc", "l3_cf", "l3_ft",
-    "l4_bc", "l4_cf", "l4_ft",
-    "l5_bc", "l5_cf", "l5_ft",
-    "l6_bc", "l6_cf", "l6_ft",
+    "r1_bc", "r1_cf", "r1_ft",
+    "r2_bc", "r2_cf", "r2_ft",
+    "r3_bc", "r3_cf", "r3_ft",
 ]
+
+A1 = 0.523599
+B1 = 0
+A2 = -0.25
+B2 = 0.8
+A3 = 0.25
+B3 = 0.6
+Initial_Action = [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
 
 class Phantomx:
     def __init__(self,
@@ -131,13 +139,13 @@ class Phantomx:
         init_position = INIT_POSITION
         if reload_urdf:
             self.my_phantomx = self._pybullet_client.loadURDF(
-                "%s/phantomx.urdf" % self._urdf_root,
+                "%s/hexapod_34.urdf" % self._urdf_root,
                 init_position,
                 flags=self._pybullet_client.URDF_USE_SELF_COLLISION)
 
             self._BuildJointNameToIdDict()
             self._BuildMotorIdList()
-            self.change_dynamics()
+            # self.change_dynamics()
             self.ResetPose()
         
         else:
@@ -168,9 +176,12 @@ class Phantomx:
             leg_id: It should be 0, 1, 2, 3, 4, 5, 6....
         """
         if leg_id % 2 == 0:
-            targetPositions = [0, -1.09956, 0.0707954249999998]
+            # targetPositions = [0, -1.09956, 0.0707954249999998]
+            # targetPositions = [0, 0.799, 0.300]
+            targetPositions = [0, 0, 0]
         else:
-            targetPositions = [0, 1.09956, 0.0707954249999998]
+            # targetPositions = [0, 0.799, 0.300]
+            targetPositions = [0, 0, 0]
         self._pybullet_client.setJointMotorControlArray(self.my_phantomx,
               jointIndices=self.joint_leg_joint_id[leg_id],
               controlMode=self._pybullet_client.POSITION_CONTROL,
@@ -211,6 +222,7 @@ class Phantomx:
         self._pybullet_client.changeDynamics(self.my_phantomx, 15, lateralFriction=4.5, frictionAnchor=1)
         self._pybullet_client.changeDynamics(self.my_phantomx, 19, lateralFriction=4.5, frictionAnchor=1)
         self._pybullet_client.changeDynamics(self.my_phantomx, 23, lateralFriction=4.5, frictionAnchor=1)
+        pass
 
     def reset_action(self, actions):
         self._action_history = actions
@@ -243,28 +255,57 @@ class Phantomx:
         # joint_angle[3] = actions[3]
         return joint_angle
     
-    def ConvertActionToLegAngle_Tripod(self, actions):
+    def ConvertActionToLegAngle_Tripod(self, motorcommands, actinons):
         """
         关节角度action∈[-1, 1]转换成实际关节角度[limit_min, limit_max]
         """
-        joint_angle = copy.deepcopy(actions)
-        for i in range(9):
+        # joint_angle = copy.deepcopy(motorcommands)
+        # for i in range(9):
+        #     if i%3 == 0:
+        #         # joint_angle[i] = self.map_range(motorcommands[i], -1.0, 1.0, -actinons[i], actinons[i])
+        #         joint_angle[i] = actinons[i//3] * motorcommands[i]
+        #         joint_angle[i] = -joint_angle[i]
+        #     elif i%3 == 1:
+        #         joint_angle[i] = self.map_range(motorcommands[i], -0.0, 2.0, -actinons[i], actinons[i])
+        #     else:
+        #         joint_angle[i] = self.map_range(motorcommands[i], -0.0, 2.0, -actinons[i], actinons[i])
+        #         # joint_angle[i] = 0.3
+        # for i in range(9):
+        #     if (i+9)%3 == 0:
+        #         joint_angle[i+9] = self.map_range(motorcommands[i+9], -1.0, 1.0, -actinons[i+9], actinons[i+9])
+                
+        #     elif (i+9)%3 == 1:
+        #         joint_angle[i+9] = self.map_range(motorcommands[i+9], -0.0, 2.0, -actinons[i+9], actinons[i+9])
+        #     else:
+        #         joint_angle[i+9] = self.map_range(motorcommands[i+9], -0.0, 2.0, -actinons[i+9], actinons[i+9])
+        #         # joint_angle[i+9] = 0.3
+        joint_angle = copy.deepcopy(motorcommands)
+        for i in range(18):
             if i%3 == 0:
-                joint_angle[i] = self.map_range(actions[i], -1.0, 1.0, -0.523599, 0.523599)
-                joint_angle[i] = -joint_angle[i]
-            elif i%3 == 1:
-                joint_angle[i] = self.map_range(actions[i], -2.0, 2.0, 0.8, 0.3)
-            else:
-                joint_angle[i] = self.map_range(actions[i], -2.0, 2.0, 0.2, 0.0)
+                # joint_angle[i] = self.map_range(motorcommands[i], -1.0, 1.0, actinons[i*4//3], actinons[i*4//3+1])
+                # 直接学映射系数
+                joint_angle[i] = actinons[i//3] * motorcommands[i]
+                # 学映射系数变化值
+                # joint_angle[i] = (actinons[i//3]+Initial_Action[i//3]) * motorcommands[i]
+            elif i%3 == 1 and i < 9:
+                # joint_angle[i] = self.map_range(motorcommands[i], -0.0, 2.0, actinons[(i-1)*4//3+2], actinons[(i-1)*4//3+3])
+                # 直接学映射系数
+                # joint_angle[i] = actinons[(i-1)//3 + 6] * motorcommands[i] + B2
+                joint_angle[i] = actinons[(i-1)//3 + 6] * motorcommands[i] - B2
+                # 学映射系数变化值
+                # joint_angle[i] = (actinons[(i-1)//3 + 6]+Initial_Action[(i-1)//3 + 6]) * motorcommands[i] + B2
+            elif i%3 == 1 and i > 9:
+                joint_angle[i] = actinons[(i-1)//3 + 6] * motorcommands[i] + B2
+            elif i%3 == 2 and i < 9:
+                # joint_angle[i] = self.map_range(motorcommands[i], -0.0, 2.0, actinons[(i-2)*4//3+3], actinons[(i-2)*4//3+2])
+                # 直接学映射系数
+                joint_angle[i] = -actinons[(i-2)//3 + 6] * motorcommands[i] + B3
+                # joint_angle[i] = -actinons[(i-2)//3 + 6] * motorcommands[i]
+                # 学映射系数变化值
+                # joint_angle[i] = -(actinons[(i-2)//3 + 6]+Initial_Action[(i-2)//3 + 6]) * motorcommands[i] + B3
                 # joint_angle[i] = 0.3
-        for i in range(9):
-            if (i+9)%3 == 0:
-                joint_angle[i+9] = self.map_range(actions[i+9], -1.0, 1.0, -0.523599, 0.523599)
-            elif (i+9)%3 == 1:
-                joint_angle[i+9] = self.map_range(actions[i+9], -2.0, 2.0, 0.8, 0.3)
             else:
-                joint_angle[i+9] = self.map_range(actions[i+9], -2.0, 2.0, 0.2, 0.0)
-                # joint_angle[i+9] = 0.3
+                joint_angle[i] = -actinons[(i-2)//3 + 6] * motorcommands[i] - B3
         return joint_angle
 
     def GetBaseHigh(self):
