@@ -26,8 +26,7 @@ RENDER_WIDTH = 480
 NUM_MOTORS = 18
 LISTLEN = 500
 FREC = 100.0 
-REWARD_FACTOR = 0.1
-COURSE_CNT = 0
+REWARD_FACTOR = 20
 
 class LimitedList:
     def __init__(self, limit):
@@ -57,10 +56,10 @@ class PhantomxGymEnv(gym.Env):
                  forward_reward_cap=float("inf"), 
                  x_velocity_weight = 1.0,# 50
                  y_velocity_weight = 1.0,# 50
-                 yaw_velocity_weight = 1.0,# 50
+                 yaw_velocity_weight = 0.75,# 50
                  height_weight = 1.0,#20
                  shakevel_weight = 1.0,#2
-                 energy_weight = 0.5,#0.5
+                 energy_weight = 1.0,#0.5
                  hard_reset=True,
                  phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/phantomx_description"):
                 # phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/hexapod_34/urdf"):
@@ -71,6 +70,7 @@ class PhantomxGymEnv(gym.Env):
         self._observation = []
         self._norm_observation = []
         self._env_step_counter = 0
+        self._course_counter = 0
         self._is_render = render
         self._set_goal_flag = set_goal_flag
         self._cam_dist = 2.0
@@ -122,6 +122,8 @@ class PhantomxGymEnv(gym.Env):
                     1.86400333, -0.74193836,  1.86400333, -0.74193836, -1.97166912,  0.36889423,
                     -1.97166912, 0.36889423,  1.86400333, -0.74193836,  1.86400333, -0.74193836]).reshape(1, -1)
         self._data = self.history_data.reshape(1, -1)
+        self._CPG_obs = np.array([0.29616917,  1.04204406, -0.37516158, -1.01642539]).reshape(1, -1)
+        self._last_motor_angle = [0] * NUM_MOTORS
         self._hard_reset = True
 		
         self.seed()
@@ -165,7 +167,10 @@ class PhantomxGymEnv(gym.Env):
           done: Whether the episode has ended.
           info: A dictionary that stores diagnostic information.
         """
+        # self._course_counter += 1
+        # print("course_counter:", self._course_counter)
         self._last_base_position = self.phantomx.GetBasePosition()
+        self._last_motor_angle = self.phantomx.GetTrueMotorAngles()
         # print("goal_state", self._goal_state)
         # print("action: ", action)
         self._pybullet_client.resetDebugVisualizerCamera(self._cam_dist, self._cam_yaw,
@@ -183,6 +188,8 @@ class PhantomxGymEnv(gym.Env):
         if (len(data)==2):
             data = data[1:].reshape(1, -1)
         self._data = data
+        # 取self._data 36个数据中的前四个
+        self._CPG_obs = np.array([data[0][0], data[0][1], data[0][2], data[0][3]]).reshape(1, -1)
         self.history_data = np.vstack((self.history_data, data))
 
         self._motorcommands = self.ActionModule.SelectAction(action_mode=10, t=t, data=data[-1, :])
@@ -222,8 +229,25 @@ class PhantomxGymEnv(gym.Env):
         
     def reset(self):
 	    #重新初始化
-        for i in range(3):
-            self._goal_state[i] = random.uniform(-2, 2)
+        # if self._course_counter < 3000000:
+        #     self._goal_state[0] = 0
+        #     self._goal_state[1] = 0
+        #     self._goal_state[2] = random.uniform(-0.6, 0.6)
+        # elif self._course_counter < 6000000:
+        #     self._goal_state[0] = random.uniform(-0.6, 0.6)
+        #     self._goal_state[1] = 0
+        #     self._goal_state[2] = 0
+        # elif self._course_counter < 10000000:
+        #     self._goal_state[0] = 0
+        #     self._goal_state[1] = random.uniform(-0.6, 0.6)
+        #     self._goal_state[2] = 0
+        # else:
+            # for i in range(3):
+            #     self._goal_state[i] = random.uniform(-0.6, 0.6)
+        
+        self._goal_state[0] = random.uniform(-0.6, 0.6)
+        self._goal_state[1] = 0
+        self._goal_state[2] = 0
         if self._set_goal_flag:
             self._goal_state = self.test_goal_state
         # print("set_goal_flag: ", self._set_goal_flag)
@@ -264,6 +288,7 @@ class PhantomxGymEnv(gym.Env):
         
         self.phantomx.Reset(reload_urdf=False)
         # print("reset done")
+        self._last_motor_angle = self.phantomx.GetTrueMotorAngles()
         self._env_step_counter = 0
         self._last_base_position = [0, 0, 0.17]
         # print("reset debug")
@@ -309,28 +334,46 @@ class PhantomxGymEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def reward_function(self, desired_x, current_x):
-        return np.e**(-abs(desired_x - current_x) / REWARD_FACTOR)
+    def reward_function(self, desired_x, current_x, yaw_flag):
+        # if abs(desired_x - current_x) < 0.15:
+        #     return 1
+        if yaw_flag:
+            return np.e**(-abs(desired_x - current_x) / 30)
+        if desired_x * current_x > 0:
+            return np.e**(-abs(desired_x - current_x) / REWARD_FACTOR)
+        else:
+            return -(desired_x - current_x)**2
     
-    def penalty_function(self, desired_x, current_x):
+    def penalty_function(self, desired_x, current_x, angvel_flag):
+        if angvel_flag:
+            return -(current_x - desired_x)**2 / 10
         return -(current_x - desired_x)**2
         # return -abs(current_x - desired_x)
 
     # 只有x方向平均速度
     def _reward(self, observations):
-        current_goal_state = observations[0:3] * 3   
-        current_CPG_data = observations[3:39] * 4
-        current_orientation = observations[39:43] * 1
-        current_base_velocity = observations[43:46] * 5
-        current_base_angvelocity = observations[46:49] * 10
-        current_joint_angles = observations[49:67]
-        current_joint_angvelocities = observations[67:85]
-        current_joint_torques = observations[85:103]
+        # current_goal_state = observations[0:3] * 0.6
+        # current_CPG_data = observations[3:39] * 4
+        # current_orientation = observations[39:43] * 1
+        # current_base_velocity = observations[43:46] * 5
+        # current_base_angvelocity = observations[46:49] * 10
+        # current_joint_angles = observations[49:67]
+        # current_joint_angvelocities = observations[67:85]
+        # current_joint_torques = observations[85:103]
+        current_goal_state = observations[0:3] * 0.6
+        current_CPG_data = observations[3:7] * 4
+        current_orientation = observations[7:11] * 1
+        current_base_velocity = observations[11:14] * 5
+        current_base_angvelocity = observations[14:17] * 10
+        current_joint_angles = observations[17:35] * 1.5
+        current_joint_angvelocities = observations[35:53] * 20
+        current_joint_torques = observations[53:71] * 50
 
         # velocity track reward
         x_desiredPvelocity = current_goal_state[0]
         y_desired_velocity = current_goal_state[1]
         yaw_desired_velocity = current_goal_state[2]
+        # print("current_goal_state:", current_goal_state)
         
 
         # x velocity (froward negative x corrdinate)
@@ -338,13 +381,14 @@ class PhantomxGymEnv(gym.Env):
             self.forward_reward_list.add_element(0)
             x_average_velocity = self.forward_reward_list.calculate_sum()
         elif self._env_step_counter < LISTLEN:
-            self.forward_reward_list.add_element(-current_base_velocity[0])
+            self.forward_reward_list.add_element(current_base_velocity[0])
             x_average_velocity = self.forward_reward_list.calculate_sum() / self._env_step_counter
         else:
-            self.forward_reward_list.add_element(-current_base_velocity[0])
+            self.forward_reward_list.add_element(current_base_velocity[0])
             x_average_velocity = self.forward_reward_list.calculate_sum() / LISTLEN
             x_average_velocity = min(x_average_velocity, self._forward_reward_cap)
-        x_velocity_reward = self.reward_function(x_desiredPvelocity, x_average_velocity)
+        x_velocity_reward = self.reward_function(x_desiredPvelocity, x_average_velocity, False)
+        # print("x_velocity_reward:", x_velocity_reward)
         
         # y velocity (drift velocity)
         if self._env_step_counter == 0:
@@ -357,29 +401,37 @@ class PhantomxGymEnv(gym.Env):
             self.drift_reward_list.add_element(current_base_velocity[1])
             y_average_velocity = self.drift_reward_list.calculate_sum() / LISTLEN
             y_average_velocity = min(y_average_velocity, self._forward_reward_cap)
-        y_velocity_reward = self.reward_function(y_desired_velocity, y_average_velocity)
+        y_velocity_reward = self.reward_function(y_desired_velocity, y_average_velocity, False)
 
         # yaw velocity (shake velocity)
-        yaw_velocity_reward = self.reward_function(yaw_desired_velocity, current_base_angvelocity[2])
+        # print("yaw_current_velocity:", current_base_angvelocity[2])
+        yaw_velocity_reward = self.reward_function(yaw_desired_velocity, current_base_angvelocity[2], True)
 
         # Penalty for z velocity
         # height_reward = -abs(current_base_velocity[2]**2)
-        height_reward = self.penalty_function(0, current_base_velocity[2])
+        height_reward = self.penalty_function(0, current_base_velocity[2], False)
         # Penalty for orientation velocity
         # shakevel_reward = -(abs(current_base_angvelocity[0])**2 + abs(current_base_angvelocity[1])**2)
-        shakevel_reward = self.penalty_function(0, current_base_angvelocity[0]) + self.penalty_function(0, current_base_angvelocity[1])
+        shakevel_reward = self.penalty_function(0, current_base_angvelocity[0], True) + self.penalty_function(0, current_base_angvelocity[1], True)
         if self._env_step_counter == 0:
             shakevel_reward = 0
 
         # Penalty for energy consumption.
+        delta_ang = np.abs(current_joint_angles - self._last_motor_angle)
         if self._env_step_counter < 30:
+            # energy_reward = -np.abs(
+            # np.dot(current_joint_torques,
+            #        current_joint_angvelocities)) * self._time_step / 10
             energy_reward = -np.abs(
             np.dot(current_joint_torques,
-                   current_joint_angvelocities)) * self._time_step / 10
+                   delta_ang)) * self._time_step
         else:
+            # energy_reward = -np.abs(
+            # np.dot(current_joint_torques,
+            #        current_joint_angvelocities)) * self._time_step
             energy_reward = -np.abs(
             np.dot(current_joint_torques,
-                   current_joint_angvelocities)) * self._time_step
+                     delta_ang)) * self._time_step
 
         objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward]
         
@@ -399,8 +451,9 @@ class PhantomxGymEnv(gym.Env):
     # 获取observation
     def _get_observation(self):
         observation = []
-        observation.extend((tuple)(elem / 3.0 for elem in self._goal_state))
-        observation.extend((tuple)(elem / 4.0 for elem in self._data[0, :]))
+        observation.extend((tuple)(elem / 0.6 for elem in self._goal_state))
+        # observation.extend((tuple)(elem / 4.0 for elem in self._data[0, :]))
+        observation.extend((tuple)(elem / 4.0 for elem in self._CPG_obs[0, :]))
         observation.extend((self.phantomx.GetBaseOrientation()))
         observation.extend((tuple)(elem / 5.0 for elem in (self.phantomx.GetTrueBodyLinearVelocity())))
         observation.extend((tuple)(elem / 10.0 for elem in (self.phantomx.GetTrueBodyAngularVelocity())))
@@ -454,41 +507,71 @@ class PhantomxGymEnv(gym.Env):
     def _get_observation_upper_bound(self):
         """Get the upper bound of the observation.
         """
-        upper_bound = np.zeros(103)
+        # upper_bound = np.zeros(103)
+        # upper_bound[0:3] = 1.0 # goal state
+        # upper_bound[3:39] = 1.0  # CPG data
+        # upper_bound[39:43] = 1.0 # base orientation
+        # upper_bound[43:46] = 1.0 # base linear vel
+        # upper_bound[46:49] = 1.0 # base ang vel
+        # for i in range(18):
+        #     if i%3 == 0:
+        #         upper_bound[49+i] = 1.0#0.7
+        #     elif i%3 == 1:
+        #         upper_bound[49+i] = 1.0#1.5
+        #     else:
+        #         upper_bound[49+i] = 1.0#1.5
+        # upper_bound[67:85] = 1.0 #joint vel
+        # upper_bound[85:103] = 1.0 #joint torque
+        upper_bound = np.zeros(71)
         upper_bound[0:3] = 1.0 # goal state
-        upper_bound[3:39] = 1.0  # CPG data
-        upper_bound[39:43] = 1.0 # base orientation
-        upper_bound[43:46] = 1.0 # base linear vel
-        upper_bound[46:49] = 1.0 # base ang vel
+        upper_bound[3:7] = 1.0  # CPG data
+        upper_bound[7:11] = 1.0 # base orientation
+        upper_bound[11:14] = 1.0 # base linear vel
+        upper_bound[14:17] = 1.0 # base ang vel
         for i in range(18):
             if i%3 == 0:
-                upper_bound[49+i] = 1.0#0.7
+                upper_bound[17+i] = 1.0
             elif i%3 == 1:
-                upper_bound[49+i] = 1.0#1.5
+                upper_bound[17+i] = 1.0
             else:
-                upper_bound[49+i] = 1.0#1.5
-        upper_bound[67:85] = 1.0 #joint vel
-        upper_bound[85:103] = 1.0 #joint torque
+                upper_bound[17+i] = 1.0
+        upper_bound[35:53] = 1.0 #joint vel
+        upper_bound[53:71] = 1.0 #joint torque
 
         return upper_bound
     
     def _get_observation_lower_bound(self):
 
-        lower_bound = np.zeros(103)
-        lower_bound[0:3] = -1.0 # goal state
-        lower_bound[3:39] = -1.0  # CPG data
-        lower_bound[39:43] = -1.0 # base orientation
-        lower_bound[43:46] = -1.0 # base linear vel
-        lower_bound[46:49] = -1.0 # base ang vel
+        # lower_bound = np.zeros(103)
+        # lower_bound[0:3] = -1.0 # goal state
+        # lower_bound[3:39] = -1.0  # CPG data
+        # lower_bound[39:43] = -1.0 # base orientation
+        # lower_bound[43:46] = -1.0 # base linear vel
+        # lower_bound[46:49] = -1.0 # base ang vel
+        # for i in range(18):
+        #     if i%3 == 0:
+        #         lower_bound[49+i] = -1.0#0.7
+        #     elif i%3 == 1:
+        #         lower_bound[49+i] = -1.0#1.5
+        #     else:
+        #         lower_bound[49+i] = -1.0#1.5
+        # lower_bound[67:85] = -1.0 #joint vel
+        # lower_bound[85:103] = -1.0 #joint torque
+        lower_bound = np.zeros(71)
+        lower_bound[0:3] = -1.0
+        lower_bound[3:7] = -1.0
+        lower_bound[7:11] = -1.0
+        lower_bound[11:14] = -1.0
+        lower_bound[14:17] = -1.0
         for i in range(18):
             if i%3 == 0:
-                lower_bound[49+i] = -1.0#0.7
+                lower_bound[17+i] = -1.0
             elif i%3 == 1:
-                lower_bound[49+i] = -1.0#1.5
+                lower_bound[17+i] = -1.0
             else:
-                lower_bound[49+i] = -1.0#1.5
-        lower_bound[67:85] = -1.0 #joint vel
-        lower_bound[85:103] = -1.0 #joint torque
+                lower_bound[17+i] = -1.0
+        lower_bound[35:53] = -1.0
+        lower_bound[53:71] = -1.0
 
         return lower_bound
 
