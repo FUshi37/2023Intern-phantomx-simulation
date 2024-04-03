@@ -384,6 +384,19 @@ class Phantomx:
     def GetBodyVelocity(self):
         vel_and_ang = self._pybullet_client.getBaseVelocity(self.my_phantomx)
         return vel_and_ang
+    
+    # 获取足底和地面的碰撞信息
+    def GetCollisionWithGround(self):
+        collision = self._pybullet_client.getContactPoints(self.my_phantomx)
+        ankle_collision = [0] * 6
+        # 只提取机器人ankle的碰撞index信息
+        for i in range(6):
+            for j in range(len(collision)):
+                if collision[j][3] == self.joint_id[i*3+2]:
+                    ankle_collision[i] = 1
+                    
+        # print("ankle_collision: ", ankle_collision)
+        return ankle_collision
 
     def ApplyAction(self, motor_commands):
         current_joint_angles = self.GetTrueMotorAngles()

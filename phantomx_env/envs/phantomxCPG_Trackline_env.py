@@ -26,7 +26,7 @@ RENDER_WIDTH = 480
 NUM_MOTORS = 18
 LISTLEN = 500
 FREC = 100.0 
-REWARD_FACTOR = 20
+REWARD_FACTOR = 0.05
 
 class LimitedList:
     def __init__(self, limit):
@@ -54,9 +54,9 @@ class PhantomxGymEnv(gym.Env):
                  set_goal_flag=False,
                  distance_limit=3,
                  forward_reward_cap=float("inf"), 
-                 x_velocity_weight = 1.0,# 50
+                 x_velocity_weight = 10.0,# 50
                  y_velocity_weight = 1.0,# 50
-                 yaw_velocity_weight = 0.75,# 50
+                 yaw_velocity_weight = 1.0,# 50
                  height_weight = 1.0,#20
                  shakevel_weight = 1.0,#2
                  energy_weight = 1.0,#0.5
@@ -99,6 +99,7 @@ class PhantomxGymEnv(gym.Env):
         self.energy_reward_list = LimitedList(LISTLEN)
         self.shake_reward_list = LimitedList(LISTLEN)
         self.height_reward_list = LimitedList(LISTLEN)
+        self.yaw_reward_list = LimitedList(LISTLEN)
 
         # Goal State
         self._goal_posture = []
@@ -124,6 +125,7 @@ class PhantomxGymEnv(gym.Env):
         self._data = self.history_data.reshape(1, -1)
         self._CPG_obs = np.array([0.29616917,  1.04204406, -0.37516158, -1.01642539]).reshape(1, -1)
         self._last_motor_angle = [0] * NUM_MOTORS
+        self._collision = [0] * 6
         self._hard_reset = True
 		
         self.seed()
@@ -171,6 +173,8 @@ class PhantomxGymEnv(gym.Env):
         # print("course_counter:", self._course_counter)
         self._last_base_position = self.phantomx.GetBasePosition()
         self._last_motor_angle = self.phantomx.GetTrueMotorAngles()
+        # self._collision = self.phantomx.GetCollisionWithGround() 
+        # print("collision:", self._collision)
         # print("goal_state", self._goal_state)
         # print("action: ", action)
         self._pybullet_client.resetDebugVisualizerCamera(self._cam_dist, self._cam_yaw,
@@ -245,7 +249,7 @@ class PhantomxGymEnv(gym.Env):
             # for i in range(3):
             #     self._goal_state[i] = random.uniform(-0.6, 0.6)
         
-        self._goal_state[0] = random.uniform(-0.6, 0.6)
+        self._goal_state[0] = random.uniform(0.4, 0.6)
         self._goal_state[1] = 0
         self._goal_state[2] = 0
         if self._set_goal_flag:
@@ -337,12 +341,15 @@ class PhantomxGymEnv(gym.Env):
     def reward_function(self, desired_x, current_x, yaw_flag):
         # if abs(desired_x - current_x) < 0.15:
         #     return 1
-        if yaw_flag:
-            return np.e**(-abs(desired_x - current_x) / 30)
-        if desired_x * current_x > 0:
-            return np.e**(-abs(desired_x - current_x) / REWARD_FACTOR)
-        else:
-            return -(desired_x - current_x)**2
+        # if desired_x * current_x <= 0:
+        #     return -(desired_x - current_x)**2 / 10
+        # if yaw_flag:
+        #     return np.e**(-abs(desired_x - current_x))
+        # if desired_x * current_x > 0:
+        #     return np.e**(-abs(desired_x - current_x) / REWARD_FACTOR)
+        # else:
+        #     return -(desired_x - current_x)**2
+        return np.e**(-abs(desired_x - current_x) / REWARD_FACTOR)
     
     def penalty_function(self, desired_x, current_x, angvel_flag):
         if angvel_flag:
@@ -405,7 +412,19 @@ class PhantomxGymEnv(gym.Env):
 
         # yaw velocity (shake velocity)
         # print("yaw_current_velocity:", current_base_angvelocity[2])
-        yaw_velocity_reward = self.reward_function(yaw_desired_velocity, current_base_angvelocity[2], True)
+        if self._env_step_counter == 0:
+            self.yaw_reward_list.add_element(0)
+            yaw_average_velocity = self.yaw_reward_list.calculate_sum()
+        elif self._env_step_counter < LISTLEN:
+            self.yaw_reward_list.add_element(current_base_angvelocity[2])
+            yaw_average_velocity = self.yaw_reward_list.calculate_sum() / self._env_step_counter
+        else:
+            self.yaw_reward_list.add_element(current_base_angvelocity[2])
+            yaw_average_velocity = self.yaw_reward_list.calculate_sum() / LISTLEN
+            yaw_average_velocity = min(yaw_average_velocity, self._forward_reward_cap)
+        yaw_velocity_reward = self.reward_function(yaw_desired_velocity, yaw_average_velocity, True)
+        # print("yaw_average_velocity:", yaw_average_velocity)
+        # yaw_velocity_reward = self.reward_function(yaw_desired_velocity, current_base_angvelocity[2], True)
 
         # Penalty for z velocity
         # height_reward = -abs(current_base_velocity[2]**2)
@@ -460,6 +479,8 @@ class PhantomxGymEnv(gym.Env):
         observation.extend((tuple)(elem / 1.5 for elem in (self.phantomx.GetTrueMotorAngles())))
         observation.extend((tuple)(elem / 20.0 for elem in self.phantomx.GetTrueMotorVelocities()))
         observation.extend((tuple)(elem / 50.0 for elem in self.phantomx.GetTrueMotorTorques()))
+        # observation.extend(self.phantomx.GetCollisionWithGround())
+
         # observation.extend((tuple)(elem / 5.0 for elem in (self.phantomx.GetTrueBodyLinearVelocity())))
         # observation.extend((tuple)(elem /10.0 for elem in (self.phantomx.GetTrueBodyAngularVelocity())))
         # observation.extend((tuple)(elem /1.5 for elem in (self.phantomx.GetTrueMotorAngles())))
@@ -523,6 +544,7 @@ class PhantomxGymEnv(gym.Env):
         # upper_bound[67:85] = 1.0 #joint vel
         # upper_bound[85:103] = 1.0 #joint torque
         upper_bound = np.zeros(71)
+        # upper_bound = np.zeros(77)
         upper_bound[0:3] = 1.0 # goal state
         upper_bound[3:7] = 1.0  # CPG data
         upper_bound[7:11] = 1.0 # base orientation
@@ -537,6 +559,7 @@ class PhantomxGymEnv(gym.Env):
                 upper_bound[17+i] = 1.0
         upper_bound[35:53] = 1.0 #joint vel
         upper_bound[53:71] = 1.0 #joint torque
+        # upper_bound[71:77] = 1.0
 
         return upper_bound
     
@@ -558,6 +581,7 @@ class PhantomxGymEnv(gym.Env):
         # lower_bound[67:85] = -1.0 #joint vel
         # lower_bound[85:103] = -1.0 #joint torque
         lower_bound = np.zeros(71)
+        # lower_bound = np.zeros(77)
         lower_bound[0:3] = -1.0
         lower_bound[3:7] = -1.0
         lower_bound[7:11] = -1.0
@@ -572,6 +596,7 @@ class PhantomxGymEnv(gym.Env):
                 lower_bound[17+i] = -1.0
         lower_bound[35:53] = -1.0
         lower_bound[53:71] = -1.0
+        # lower_bound[71:77] = -1.0
 
         return lower_bound
 
