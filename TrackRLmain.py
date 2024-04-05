@@ -2,7 +2,7 @@ import gym
 # import torch as th
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, SAC
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize, SubprocVecEnv, VecMonitor
 from stable_baselines3.common.monitor import Monitor
@@ -56,7 +56,7 @@ class SaveModelCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         if self.n_calls % self.save_freq == 0:
-            self.model.save(os.path.join(self.save_path + "model/", f"modelVxP_{self.num_timesteps}.zip"))
+            self.model.save(os.path.join(self.save_path + "model/", f"modelVxPRelu_{self.num_timesteps}.zip"))
         return True
 
 def make_env():
@@ -97,15 +97,16 @@ if __name__ == "__main__":
 
     callback = SaveModelCallback(save_freq=5e4, save_path=log_dir)
 
-    policy_kwargs = dict(activation_fn=torch.nn.Tanh,
+    policy_kwargs = dict(activation_fn=torch.nn.ReLU,
                         net_arch=[dict(pi=[512, 256, 128], vf=[512 ,256, 128])])
 
-    model = PPO("MlpPolicy", env, device=device, policy_kwargs=policy_kwargs, learning_rate=2.5e-4, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
-    # model = PPO.load(log_dir + "model/modelVxP_2400000", env=env)
-    # model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
+    # model = SAC("MlpPolicy", env, device=device, policy_kwargs=policy_kwargs, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
+    # model = PPO("MlpPolicy", env, device=device, policy_kwargs=policy_kwargs, learning_rate=2.5e-4, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
+    # model = PPO.load(log_dir + "model/modelVxP2_22400000", env=env)
+    model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
     model.learn(
         # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run"
-        total_timesteps=8192*2000, reset_num_timesteps=True, tb_log_name=tb_log_name, callback=callback
+        total_timesteps=8000*2000, reset_num_timesteps=False, tb_log_name=tb_log_name, callback=callback
         # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name=tb_log_name
         # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run", callback=callback
     )
@@ -118,11 +119,11 @@ if __name__ == "__main__":
 # -----------------------------加载模型检验时注释该部分--------------------------------
 #     env = PhantomxGymEnv(render=True, set_goal_flag=True)
 
-#     # model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
-#     model = PPO.load(log_dir + "model/modelVxP_16000000", env=env)
+#     model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
+#     # model = PPO.load(log_dir + "model/modelVxP2_16000000", env=env)
 #     # model = PPO.load(log_dir + "zip/ppo_phantomx_jump", env=env)
 
-#     env.set_goal_state([0.0, 0.0, 0.0])
+#     env.set_goal_state([0.52, 0.0, 0.0])
 
 #     obs = env.reset()
 
@@ -152,10 +153,10 @@ if __name__ == "__main__":
 #         action, _states = model.predict(obs)
 #         # action = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 #         # action = [0.523599, 0.523599, 0.523599, -0.523599, -0.523599, -0.523599, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
-#         action = [0.523599, 0.523599, 0.523599, 0.523599, 0.523599, 0.523599, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
+#         # action = [-0.523599, -0.523599, -0.523599, 0.523599, 0.523599, 0.523599, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
 #         # action = [-0.8, -0.8, -0.8, 0.8, 0.8, 0.8, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
         
-#         # print("action", action)
+#         print("action", action)
 #         # env.setMotorCommand(motorcommands)
 
 #         obs, rewards, dones, info = env.step(action=action)

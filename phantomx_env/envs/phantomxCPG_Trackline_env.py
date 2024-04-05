@@ -24,9 +24,9 @@ from src.CentralPatternGenerators.OnlineCPG import OnlinePhantomxCPG
 RENDER_HEIGHT = 360
 RENDER_WIDTH = 480
 NUM_MOTORS = 18
-LISTLEN = 500
+LISTLEN = 400
 FREC = 100.0 
-REWARD_FACTOR = 0.05
+REWARD_FACTOR = 0.25
 
 class LimitedList:
     def __init__(self, limit):
@@ -54,8 +54,8 @@ class PhantomxGymEnv(gym.Env):
                  set_goal_flag=False,
                  distance_limit=3,
                  forward_reward_cap=float("inf"), 
-                 x_velocity_weight = 10.0,# 50
-                 y_velocity_weight = 1.0,# 50
+                 x_velocity_weight = 1.0,# 50
+                 y_velocity_weight = 1.00,# 50
                  yaw_velocity_weight = 1.0,# 50
                  height_weight = 1.0,#20
                  shakevel_weight = 1.0,#2
@@ -349,6 +349,8 @@ class PhantomxGymEnv(gym.Env):
         #     return np.e**(-abs(desired_x - current_x) / REWARD_FACTOR)
         # else:
         #     return -(desired_x - current_x)**2
+        if yaw_flag:
+            return np.e**(-abs(desired_x - current_x) / 0.25)
         return np.e**(-abs(desired_x - current_x) / REWARD_FACTOR)
     
     def penalty_function(self, desired_x, current_x, angvel_flag):
@@ -395,6 +397,7 @@ class PhantomxGymEnv(gym.Env):
             x_average_velocity = self.forward_reward_list.calculate_sum() / LISTLEN
             x_average_velocity = min(x_average_velocity, self._forward_reward_cap)
         x_velocity_reward = self.reward_function(x_desiredPvelocity, x_average_velocity, False)
+        # print("x_average_velocity:", x_average_velocity)
         # print("x_velocity_reward:", x_velocity_reward)
         
         # y velocity (drift velocity)
@@ -409,6 +412,7 @@ class PhantomxGymEnv(gym.Env):
             y_average_velocity = self.drift_reward_list.calculate_sum() / LISTLEN
             y_average_velocity = min(y_average_velocity, self._forward_reward_cap)
         y_velocity_reward = self.reward_function(y_desired_velocity, y_average_velocity, False)
+        # print("y_average_velocity:", y_average_velocity)
 
         # yaw velocity (shake velocity)
         # print("yaw_current_velocity:", current_base_angvelocity[2])
@@ -505,7 +509,7 @@ class PhantomxGymEnv(gym.Env):
 
     def _termination(self):
 
-        return self.is_fallen() or self._env_step_counter > 2048
+        return self.is_fallen() or self._env_step_counter > 2000
     
     def is_fallen(self):
         """Decide whether the phantomx has fallen.

@@ -1,0 +1,2 @@
+2024.4.3 训练机器人跟随x方向大小为0.4-0.6的任意速度。所有reward系数都是1，yaw角reward factor为1，x、y方向速度reward factor为0.25，训练效果一般，16M后训练曲线没收敛，LOG文件PPO—TrackVelocity-100HZ-xvelP，最后保存模型modelVxP2_16000000。机器人直走过程中还会转。
+2024.4.4 把x方向速度的系数调大10倍，即改为10。
