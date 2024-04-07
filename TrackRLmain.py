@@ -56,7 +56,7 @@ class SaveModelCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         if self.n_calls % self.save_freq == 0:
-            self.model.save(os.path.join(self.save_path + "model/", f"modelVxPRelu_{self.num_timesteps}.zip"))
+            self.model.save(os.path.join(self.save_path + "model/", f"modelVxPRelu10_{self.num_timesteps}.zip"))
         return True
 
 def make_env():
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
     model.learn(
         # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run"
-        total_timesteps=8000*2000, reset_num_timesteps=False, tb_log_name=tb_log_name, callback=callback
+        total_timesteps=8000*100, reset_num_timesteps=False, tb_log_name=tb_log_name, callback=callback
         # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name=tb_log_name
         # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run", callback=callback
     )
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 #     env = PhantomxGymEnv(render=True, set_goal_flag=True)
 
 #     model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
-#     # model = PPO.load(log_dir + "model/modelVxP2_16000000", env=env)
+#     # model = PPO.load(log_dir + "model/modelVxPRelu10_16005632", env=env)
 #     # model = PPO.load(log_dir + "zip/ppo_phantomx_jump", env=env)
 
 #     env.set_goal_state([0.52, 0.0, 0.0])
@@ -156,7 +156,7 @@ if __name__ == "__main__":
 #         # action = [-0.523599, -0.523599, -0.523599, 0.523599, 0.523599, 0.523599, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
 #         # action = [-0.8, -0.8, -0.8, 0.8, 0.8, 0.8, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
         
-#         print("action", action)
+#         # print("action", action)
 #         # env.setMotorCommand(motorcommands)
 
 #         obs, rewards, dones, info = env.step(action=action)
