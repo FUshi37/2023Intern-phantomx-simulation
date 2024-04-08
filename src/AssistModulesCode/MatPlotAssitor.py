@@ -34,6 +34,9 @@ class PlotModuleAssistor(object):
         # plt_mode = 11 -> plot particular reward data in one figure
         elif self._pltMode == 11:
             self.plotReward("Reward", "t", "reward", save_name, self._path)
+        # plt_mode = 12 -> plot one dimon action in one figure
+        elif self._pltMode == 12:
+            self.plotAction("Action", "t", "action", "Action", self._path)
         
         plt.close()
 
@@ -105,6 +108,17 @@ class PlotModuleAssistor(object):
         plt.ylabel(ylabel)
 
         plt.plot(self._data, label="Reward")
+        plt.legend()
+
+        self._save_figure(save_name, save_path)
+
+    def plotAction(self, title="Action", xlabel="t", ylabel="Action", save_name="Action", save_path = "/data/ResultPictures"):
+        plt.title(title)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        t = [i for i in range(len(self._data))]
+
+        plt.scatter(t, self._data, label="Action")
         plt.legend()
 
         self._save_figure(save_name, save_path)

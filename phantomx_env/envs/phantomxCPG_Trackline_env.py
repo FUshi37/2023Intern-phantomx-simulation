@@ -54,9 +54,9 @@ class PhantomxGymEnv(gym.Env):
                  set_goal_flag=False,
                  distance_limit=3,
                  forward_reward_cap=float("inf"), 
-                 x_velocity_weight = 10.0,# 50
-                 y_velocity_weight = 2.00,# 50
-                 yaw_velocity_weight = 2.0,# 50
+                 x_velocity_weight = 10.0,# 
+                 y_velocity_weight = 5.00,# 2
+                 yaw_velocity_weight = 5.0,# 2
                  height_weight = 1.0,#20
                  shakevel_weight = 1.0,#2
                  energy_weight = 10.0,#0.5
@@ -349,6 +349,8 @@ class PhantomxGymEnv(gym.Env):
         #     return np.e**(-abs(desired_x - current_x) / REWARD_FACTOR)
         # else:
         #     return -(desired_x - current_x)**2
+        if desired_x * current_x <= 0:
+            return -abs(desired_x - current_x)
         if yaw_flag:
             return np.e**(-abs(desired_x - current_x) / 1)
         return np.e**(-abs(desired_x - current_x) / REWARD_FACTOR)

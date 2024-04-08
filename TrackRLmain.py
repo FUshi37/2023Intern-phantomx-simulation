@@ -56,7 +56,7 @@ class SaveModelCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         if self.n_calls % self.save_freq == 0:
-            self.model.save(os.path.join(self.save_path + "model/", f"modelVxPRelu10_{self.num_timesteps}.zip"))
+            self.model.save(os.path.join(self.save_path + "model/", f"modelVxPELU_{self.num_timesteps}.zip"))
         return True
 
 def make_env():
@@ -97,16 +97,16 @@ if __name__ == "__main__":
 
     callback = SaveModelCallback(save_freq=5e4, save_path=log_dir)
 
-    policy_kwargs = dict(activation_fn=torch.nn.ReLU,
+    policy_kwargs = dict(activation_fn=torch.nn.ELU,
                         net_arch=[dict(pi=[512, 256, 128], vf=[512 ,256, 128])])
 
     # model = SAC("MlpPolicy", env, device=device, policy_kwargs=policy_kwargs, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
-    # model = PPO("MlpPolicy", env, device=device, policy_kwargs=policy_kwargs, learning_rate=2.5e-4, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
+    model = PPO("MlpPolicy", env, device=device, policy_kwargs=policy_kwargs, learning_rate=2.5e-4, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
     # model = PPO.load(log_dir + "model/modelVxP2_22400000", env=env)
-    model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
+    # model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
     model.learn(
         # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run"
-        total_timesteps=8000*100, reset_num_timesteps=False, tb_log_name=tb_log_name, callback=callback
+        total_timesteps=8000*1800, reset_num_timesteps=True, tb_log_name=tb_log_name, callback=callback
         # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name=tb_log_name
         # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run", callback=callback
     )
@@ -119,8 +119,8 @@ if __name__ == "__main__":
 # -----------------------------加载模型检验时注释该部分--------------------------------
 #     env = PhantomxGymEnv(render=True, set_goal_flag=True)
 
-#     model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
-#     # model = PPO.load(log_dir + "model/modelVxPRelu10_16005632", env=env)
+#     # model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
+#     model = PPO.load(log_dir + "model/modelVxPRelu10_31242752", env=env)
 #     # model = PPO.load(log_dir + "zip/ppo_phantomx_jump", env=env)
 
 #     env.set_goal_state([0.52, 0.0, 0.0])
@@ -139,6 +139,7 @@ if __name__ == "__main__":
 #     TrueBodyAngVelocity = []
 #     TrueMotorVel = []
 #     Rewards = []
+#     Action = []
 
 #     # history_data = np.array([-1.0] * ((6 * 3) * 2)).reshape(1, -1)
 #     history_data = np.array([0.29616917,  1.04204406, -0.37516158, -1.01642539,  0.29616917,  1.04204406,
@@ -152,9 +153,9 @@ if __name__ == "__main__":
 #     for i in range(TIME):
 #         action, _states = model.predict(obs)
 #         # action = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-#         # action = [0.523599, 0.523599, 0.523599, -0.523599, -0.523599, -0.523599, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
+#         action = [0.523599, 0.523599, 0.523599, -0.523599, -0.523599, -0.523599, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
 #         # action = [-0.523599, -0.523599, -0.523599, 0.523599, 0.523599, 0.523599, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
-#         # action = [-0.8, -0.8, -0.8, 0.8, 0.8, 0.8, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
+#         # action = [0.1, 0.1, 0.1, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1, -0.1]
         
 #         # print("action", action)
 #         # env.setMotorCommand(motorcommands)
@@ -181,6 +182,7 @@ if __name__ == "__main__":
 #         motor_angle = env.phantomx.GetTrueMotorAngles()
 #         Rewards.append(rewards)
 #         TrueMotorAngle.append(motor_angle)
+#         Action.append(action[0])
 
 #         # BaseOrientation.append(orientation)
 #         # TrueBodyVelocity.append(robot_linearvel)
@@ -240,6 +242,7 @@ if __name__ == "__main__":
 #     PltModule.plot(data=TrueLegAngle, plt_mode=1)
 #     PltModule.plot(data=TrueLegAngle, plt_mode=2)
 #     PltModule.plot(data=Rewards, plt_mode=10)
+#     PltModule.plot(data=Action, plt_mode=12)
 #     # PltModule.plot(data=Rewards, plt_mode=11, save_name="ForwardReward")
 #     plt.close('all')
 # -----------------------------训练时注释该部分--------------------------------
