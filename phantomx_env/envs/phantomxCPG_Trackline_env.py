@@ -55,11 +55,14 @@ class PhantomxGymEnv(gym.Env):
                  distance_limit=3,
                  forward_reward_cap=float("inf"), 
                  x_velocity_weight = 10.0,# 
-                 y_velocity_weight = 5.00,# 2
-                 yaw_velocity_weight = 5.0,# 2
+                 y_velocity_weight = 2.00,# 2
+                 yaw_velocity_weight = 2.0,# 2
                  height_weight = 1.0,#20
                  shakevel_weight = 1.0,#2
-                 energy_weight = 10.0,#0.5
+                 energy_weight = 20.0,#0.5
+                 intime_x_velocity = 5.0,
+                 intime_y_velocity = 5.0,
+                 intime_yaw_velocity = 5.0,
                  hard_reset=True,
                  phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/phantomx_description"):
                 # phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/hexapod_34/urdf"):
@@ -108,7 +111,7 @@ class PhantomxGymEnv(gym.Env):
         self.test_goal_state = [0, 0, 0]
         
         # self._objective_weights = [distance_weight, drift_weight, energy_weight, shake_weight, height_weight, shakevel_weight]
-        self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight]
+        self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight, intime_x_velocity, intime_y_velocity, intime_yaw_velocity]
         self._objectives = []
         if self._is_render:
             self._pybullet_client = bc.BulletClient(connection_mode=pybullet.GUI)
@@ -349,8 +352,8 @@ class PhantomxGymEnv(gym.Env):
         #     return np.e**(-abs(desired_x - current_x) / REWARD_FACTOR)
         # else:
         #     return -(desired_x - current_x)**2
-        if desired_x * current_x <= 0:
-            return -abs(desired_x - current_x)
+        # if desired_x * current_x <= 0:
+        #     return -abs(desired_x - current_x)
         if yaw_flag:
             return np.e**(-abs(desired_x - current_x) / 1)
         return np.e**(-abs(desired_x - current_x) / REWARD_FACTOR)
@@ -458,7 +461,19 @@ class PhantomxGymEnv(gym.Env):
             np.dot(current_joint_torques,
                      delta_ang)) * self._time_step
 
-        objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward]
+        # penalty for intime velocity
+        intiem_xvel_reward = 0
+        intiem_yvel_reward = 0
+        intiem_yawvel_reward = 0
+        if current_base_velocity[0]*current_goal_state[0] <= 0:
+            intiem_xvel_reward = self.penalty_function(current_goal_state[0], current_base_velocity[0], False)
+        if current_base_velocity[1]*current_goal_state[1] <= 0:
+            intiem_yvel_reward = self.penalty_function(current_goal_state[1], current_base_velocity[1], False)
+        if current_base_angvelocity[2]*current_goal_state[2] <= 0:
+            intiem_yawvel_reward = self.penalty_function(current_goal_state[2], current_base_angvelocity[2], True)
+
+        # objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward]
+        objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward, intiem_xvel_reward, intiem_yvel_reward, intiem_yawvel_reward]
         
         weighted_objectives = [o * w for o, w in zip(objectives, self._objective_weights)]
         reward = sum(weighted_objectives)
@@ -511,7 +526,7 @@ class PhantomxGymEnv(gym.Env):
 
     def _termination(self):
 
-        return self.is_fallen() or self._env_step_counter > 2000
+        return self.is_fallen() or self._env_step_counter > 1998
     
     def is_fallen(self):
         """Decide whether the phantomx has fallen.
