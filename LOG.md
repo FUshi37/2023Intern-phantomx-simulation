@@ -5,7 +5,10 @@
 2024.4.7 继续上次训练到3M，reward收敛到1w8附近，没有收敛到预期值。机器人在走的时候还是会在yaw角方向有速度，且action的取值比较随即。
 2024.4.8 reward function增加负向惩罚，修改系数y速度和yaw速度为5，修改激活函数为ELU函数。 LOG-10
 2024.4.9 LOG-10训练到19M后收敛到1w左右，然而理想reward应收敛到2w，action取值还较为随机，机器人仍然会有转向（yaw角速度），增加即时速度惩罚项，reward function里的负向惩罚取消，修改激活函数为tanh。 LOG-11
+2024.4.10 训练局部收敛（假收敛），收敛到1w8附近，期望值为2w8左右，action取值还是较为随机。尝试用SAC训练，action取值随机的情况有所改善。 LOG-12
 
 todo
 1.尝试用SAC代替PPO，看是否能解决action取值在边界值的问题
 2.修改网络结构，现在隐藏层结构为[512, 256, 128]
+3.接入rsl-rl的ppo代替stable_baselines3的ppo
+4.奖励项增加action rate，对action的变化值做惩罚，尝试是否能让action收敛
