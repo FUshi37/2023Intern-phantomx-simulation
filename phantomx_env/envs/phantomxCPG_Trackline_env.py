@@ -63,7 +63,7 @@ class PhantomxGymEnv(gym.Env):
                  intime_x_velocity = 5.0,
                  intime_y_velocity = 5.0,
                  intime_yaw_velocity = 5.0,
-                 action_rate = 1.0,
+                 action_rate = 3.0,
                  hard_reset=True,
                  phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/phantomx_description"):
                 # phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/hexapod_34/urdf"):
@@ -195,10 +195,6 @@ class PhantomxGymEnv(gym.Env):
         if time_to_sleep > 0:
             time.sleep(time_to_sleep)
 
-        # action rate
-        self._delta_action = np.array(action) - np.array(self._last_action)
-        self._last_action = action
-
         # CPG步态计算
         t = np.linspace(self._env_step_counter*self._time_step, self._env_step_counter*self._time_step+self._time_step, 2)
         data = self.OnlineCPGModule.online_calculate(t, initial_values=self.history_data[-1, :])
@@ -239,7 +235,11 @@ class PhantomxGymEnv(gym.Env):
         
         observation = np.array(self._get_observation()).astype(np.float32)
 
-        reward = self._reward(observation)
+        reward = self._reward(observation, action)
+
+        # action rate
+        self._delta_action = np.array(action) - np.array(self._last_action)
+        self._last_action = action
 
         info = {}
         return observation, reward, done, info
@@ -276,6 +276,7 @@ class PhantomxGymEnv(gym.Env):
         self.energy_reward_list.clear()
         self.shake_reward_list.clear()
         self.height_reward_list.clear()
+        self.yaw_reward_list.clear()
     
         if self._hard_reset:
             # print("reset simulation")
@@ -362,7 +363,7 @@ class PhantomxGymEnv(gym.Env):
         # return -abs(current_x - desired_x)
 
     # 只有x方向平均速度
-    def _reward(self, observations):
+    def _reward(self, observations, action):
         # current_goal_state = observations[0:3] * 0.6
         # current_CPG_data = observations[3:39] * 4
         # current_orientation = observations[39:43] * 1
@@ -379,7 +380,8 @@ class PhantomxGymEnv(gym.Env):
         current_joint_angles = observations[17:35] * 1.5
         current_joint_angvelocities = observations[35:53] * 20
         current_joint_torques = observations[53:71] * 50
-        # delta_action = observations[71:83] * 2
+        # last_action = observations[71:83]
+        # delta_action = action - last_action
 
         # velocity track reward
         x_desiredPvelocity = current_goal_state[0]
@@ -470,11 +472,11 @@ class PhantomxGymEnv(gym.Env):
         if current_base_angvelocity[2]*current_goal_state[2] <= 0:
             intiem_yawvel_reward = self.penalty_function(current_goal_state[2], current_base_angvelocity[2], True)
         
-        # pelnaty for action rate
-        action_rate_reward = -np.abs(np.dot(self._delta_action, self._delta_action))
+        # # pelnaty for action rate
+        # # action_rate_reward = -np.abs(np.dot(self._delta_action, self._delta_action))
         # action_rate_reward = -np.abs(np.dot(delta_action, delta_action))
-        if self._env_step_counter == 0:
-            action_rate_reward = 0
+        # if self._env_step_counter == 0:
+        #     action_rate_reward = 0
 
         # objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward]
         objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward, intiem_xvel_reward, intiem_yvel_reward, intiem_yawvel_reward]
@@ -506,7 +508,7 @@ class PhantomxGymEnv(gym.Env):
         observation.extend((tuple)(elem / 20.0 for elem in self.phantomx.GetTrueMotorVelocities()))
         observation.extend((tuple)(elem / 50.0 for elem in self.phantomx.GetTrueMotorTorques()))
         # observation.extend(self.phantomx.GetCollisionWithGround())
-        # observation.extend((tuple)(elem / 2 for elem in self._delta_action)) # action rate
+        # observation.extend((tuple)(elem / 1 for elem in self._last_action)) # action rate
 
         # observation.extend((tuple)(elem / 5.0 for elem in (self.phantomx.GetTrueBodyLinearVelocity())))
         # observation.extend((tuple)(elem /10.0 for elem in (self.phantomx.GetTrueBodyAngularVelocity())))
@@ -571,6 +573,7 @@ class PhantomxGymEnv(gym.Env):
         # upper_bound[67:85] = 1.0 #joint vel
         # upper_bound[85:103] = 1.0 #joint torque
         upper_bound = np.zeros(71)
+        # upper_bound = np.zeros(83)
         # upper_bound = np.zeros(77)
         upper_bound[0:3] = 1.0 # goal state
         upper_bound[3:7] = 1.0  # CPG data
@@ -609,6 +612,7 @@ class PhantomxGymEnv(gym.Env):
         # lower_bound[67:85] = -1.0 #joint vel
         # lower_bound[85:103] = -1.0 #joint torque
         lower_bound = np.zeros(71)
+        # lower_bound = np.zeros(83)
         # lower_bound = np.zeros(77)
         lower_bound[0:3] = -1.0
         lower_bound[3:7] = -1.0
