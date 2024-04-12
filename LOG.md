@@ -6,7 +6,9 @@
 2024.4.8 reward function增加负向惩罚，修改系数y速度和yaw速度为5，修改激活函数为ELU函数。 LOG-10
 2024.4.9 LOG-10训练到19M后收敛到1w左右，然而理想reward应收敛到2w，action取值还较为随机，机器人仍然会有转向（yaw角速度），增加即时速度惩罚项，reward function里的负向惩罚取消，修改激活函数为tanh。 LOG-11
 2024.4.10 训练局部收敛（假收敛），收敛到1w8附近，期望值为2w8左右，action取值还是较为随机。尝试用SAC训练，action取值随机的情况有所改善。 LOG-12
-2024.4.11 发现yaw_average_velocity有BUG，修正后重新用PPO、Tanh训练，，训练了13M，还位收敛但已经有收敛的趋势、未收敛13M的reward值约为1.8w，理想reward为2w以上。 LOG-13
+2024.4.11 发现yaw_average_velocity有BUG，修正后重新用PPO、Tanh训练，，训练了13M，还位收敛但已经有收敛的趋势、未收敛13M的reward值约为1.8w，理想reward为2w以上。 LOG-13 modelVxPPPOaction
+2024.4.12 增加action rate惩罚项，对action的变化值做惩罚，训练效果一般，未收敛到预期值，action取值有收缩趋势但仍然较为随机。 LOG-14 modelVxPPPOA
+
 
 todo
 1.尝试用SAC代替PPO，看是否能解决action取值在边界值的问题
