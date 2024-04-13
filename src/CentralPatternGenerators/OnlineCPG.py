@@ -44,8 +44,8 @@ class OnlinePhantomxCPG(object):
                     -1.97166912, 0.36889423,  1.86400333, -0.74193836,  1.86400333, -0.74193836]
         
         if self._coupling == True:
-            self._body_oscillator = [self.init_oscillator(omega_sw=2*3)] * self._leg_num #6个hip joint
-            self._limb_oscillator = [self.init_oscillator(mu=4, omega_sw=2*3)] * (self._leg_num - 1) * self.__motor_num #12个limb joint\
+            self._body_oscillator = [self.init_oscillator(omega_sw=2*np.pi)] * self._leg_num #6个hip joint
+            self._limb_oscillator = [self.init_oscillator(mu=4, omega_sw=2*np.pi)] * (self._leg_num - 1) * self.__motor_num #12个limb joint\
             self._oscillator = self._body_oscillator + self._limb_oscillator
         
         self._dx = []
