@@ -54,16 +54,16 @@ class PhantomxGymEnv(gym.Env):
                  set_goal_flag=False,
                  distance_limit=3,
                  forward_reward_cap=float("inf"), 
-                 x_velocity_weight = 50.0,# 
+                 x_velocity_weight = 20.0,# 
                  y_velocity_weight = 5.00,# 2
                  yaw_velocity_weight = 5.0,# 2
                  height_weight = 5.0,#20
                  shakevel_weight = 5.0,#2
                  energy_weight = 20.0,#0.5
-                 intime_x_velocity = 0.0,
-                 intime_y_velocity = 0.0,
-                 intime_yaw_velocity = 0.0,
-                 action_rate = 0.0,
+                #  intime_x_velocity = 3.0,
+                #  intime_y_velocity = 3.0,
+                #  intime_yaw_velocity = 3.0,
+                 action_rate = 5.0,
                  hard_reset=True,
                  phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/phantomx_description"):
                 # phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/hexapod_34/urdf"):
@@ -112,8 +112,9 @@ class PhantomxGymEnv(gym.Env):
         self.test_goal_state = [0, 0, 0]
         
         # self._objective_weights = [distance_weight, drift_weight, energy_weight, shake_weight, height_weight, shakevel_weight]
-        self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight]
+        # self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight]
         # self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight, intime_x_velocity, intime_y_velocity, intime_yaw_velocity]
+        self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight, action_rate]
         # self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight, intime_x_velocity, intime_y_velocity, intime_yaw_velocity, action_rate]
         self._objectives = []
         if self._is_render:
@@ -370,13 +371,15 @@ class PhantomxGymEnv(gym.Env):
         current_goal_state = observations[0:3] * 0.6
         current_CPG_data = observations[3:7] * 4
         current_orientation = observations[7:11] * 1
-        current_base_velocity = observations[11:14] * 5
-        current_base_angvelocity = observations[14:17] * 10
+        current_base_velocity = observations[11:14] * 2
+        current_base_angvelocity = observations[14:17] * 7
         current_joint_angles = observations[17:35] * 1.5
         current_joint_angvelocities = observations[35:53] * 20
-        current_joint_torques = observations[53:71] * 50
+        # current_joint_torques = observations[53:71] * 30
+        current_joint_torques = self.phantomx.GetTrueMotorTorques()
         # last_action = observations[71:83]
-        # delta_action = action - last_action
+        last_action = observations[53:65]
+        delta_action = action - last_action
 
         # velocity track reward
         x_desiredPvelocity = current_goal_state[0]
@@ -467,15 +470,16 @@ class PhantomxGymEnv(gym.Env):
         if current_base_angvelocity[2]*current_goal_state[2] <= 0:
             intiem_yawvel_reward = self.penalty_function(current_goal_state[2], current_base_angvelocity[2], True)
         
-        # # pelnaty for action rate
-        # # action_rate_reward = -np.abs(np.dot(self._delta_action, self._delta_action))
-        # action_rate_reward = -np.abs(np.dot(delta_action, delta_action))
-        # if self._env_step_counter == 0:
-        #     action_rate_reward = 0
+        # pelnaty for action rate
+        # action_rate_reward = -np.abs(np.dot(self._delta_action, self._delta_action))
+        action_rate_reward = -np.abs(np.dot(delta_action, delta_action))
+        if self._env_step_counter == 0:
+            action_rate_reward = 0
 
-        objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward]
+        # objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward]
         # objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward, intiem_xvel_reward, intiem_yvel_reward, intiem_yawvel_reward]
         # objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward, intiem_xvel_reward, intiem_yvel_reward, intiem_yawvel_reward, action_rate_reward]
+        objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward, action_rate_reward]
         
         weighted_objectives = [o * w for o, w in zip(objectives, self._objective_weights)]
         reward = sum(weighted_objectives)
@@ -497,13 +501,13 @@ class PhantomxGymEnv(gym.Env):
         # observation.extend((tuple)(elem / 4.0 for elem in self._data[0, :]))
         observation.extend((tuple)(elem / 4.0 for elem in self._CPG_obs[0, :]))
         observation.extend((self.phantomx.GetBaseOrientation()))
-        observation.extend((tuple)(elem / 5.0 for elem in (self.phantomx.GetTrueBodyLinearVelocity())))# 2
-        observation.extend((tuple)(elem / 10.0 for elem in (self.phantomx.GetTrueBodyAngularVelocity())))# 7
+        observation.extend((tuple)(elem / 2.0 for elem in (self.phantomx.GetTrueBodyLinearVelocity())))# 2
+        observation.extend((tuple)(elem / 70.0 for elem in (self.phantomx.GetTrueBodyAngularVelocity())))# 7
         observation.extend((tuple)(elem / 1.5 for elem in (self.phantomx.GetTrueMotorAngles())))
         observation.extend((tuple)(elem / 20.0 for elem in self.phantomx.GetTrueMotorVelocities()))
-        observation.extend((tuple)(elem / 50.0 for elem in self.phantomx.GetTrueMotorTorques()))# 30
+        # observation.extend((tuple)(elem / 30.0 for elem in self.phantomx.GetTrueMotorTorques()))# 30
         # observation.extend(self.phantomx.GetCollisionWithGround())
-        # observation.extend((tuple)(elem / 1 for elem in self._last_action)) # action rate
+        observation.extend((tuple)(elem / 1 for elem in self._last_action)) # action rate
 
         # observation.extend((tuple)(elem / 5.0 for elem in (self.phantomx.GetTrueBodyLinearVelocity())))
         # observation.extend((tuple)(elem /10.0 for elem in (self.phantomx.GetTrueBodyAngularVelocity())))
@@ -567,9 +571,10 @@ class PhantomxGymEnv(gym.Env):
         #         upper_bound[49+i] = 1.0#1.5
         # upper_bound[67:85] = 1.0 #joint vel
         # upper_bound[85:103] = 1.0 #joint torque
-        upper_bound = np.zeros(71)
+        # upper_bound = np.zeros(71)
         # upper_bound = np.zeros(83)
         # upper_bound = np.zeros(77)
+        upper_bound = np.zeros(65)
         upper_bound[0:3] = 1.0 # goal state
         upper_bound[3:7] = 1.0  # CPG data
         upper_bound[7:11] = 1.0 # base orientation
@@ -583,9 +588,10 @@ class PhantomxGymEnv(gym.Env):
             else:
                 upper_bound[17+i] = 1.0
         upper_bound[35:53] = 1.0 #joint vel
-        upper_bound[53:71] = 1.0 #joint torque
-        # upper_bound[71:77] = 1.0
+        # upper_bound[53:71] = 1.0 #joint torque
+        # # upper_bound[71:77] = 1.0
         # upper_bound[71:83] = 1.0 #last action
+        upper_bound[53:65] = 1.0 #joint torque
 
         return upper_bound
     
@@ -606,9 +612,10 @@ class PhantomxGymEnv(gym.Env):
         #         lower_bound[49+i] = -1.0#1.5
         # lower_bound[67:85] = -1.0 #joint vel
         # lower_bound[85:103] = -1.0 #joint torque
-        lower_bound = np.zeros(71)
+        # lower_bound = np.zeros(71)
         # lower_bound = np.zeros(83)
         # lower_bound = np.zeros(77)
+        lower_bound = np.zeros(65)
         lower_bound[0:3] = -1.0
         lower_bound[3:7] = -1.0
         lower_bound[7:11] = -1.0
@@ -622,9 +629,10 @@ class PhantomxGymEnv(gym.Env):
             else:
                 lower_bound[17+i] = -1.0
         lower_bound[35:53] = -1.0
-        lower_bound[53:71] = -1.0
-        # lower_bound[71:77] = -1.0
+        # lower_bound[53:71] = -1.0
+        # # lower_bound[71:77] = -1.0
         # lower_bound[71:83] = -1.0
+        lower_bound[53:65] = -1.0 #joint torque
 
 
         return lower_bound

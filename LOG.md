@@ -9,6 +9,7 @@
 2024.4.11 发现yaw_average_velocity有BUG，修正后重新用PPO、Tanh训练，，训练了13M，还位收敛但已经有收敛的趋势、未收敛13M的reward值约为1.8w，理想reward为2w以上。 LOG-13 modelVxPPPOaction
 2024.4.12 增加action rate惩罚项，对action的变化值做惩罚，训练效果一般，未收敛到预期值，action取值有收缩趋势但仍然较为随机。 LOG-14 modelVxPPPOA
 2024.4.13 修改reward function为线性函数，修改网络结构为[128 256 512 256 128]，缩短CPG周前为100，修改单次训练episode为300，修改leaky_relu作为激活函数。基本收敛，action取值出现取值在边界值的情况，且action取值还是较为随机。 LOG-15 modelVxLeakyRelu
+2024.4.14 reward增加即时速度惩罚和action rate惩罚。未收敛到目标值，action取值较为随机。 LOG-16 modelVxLeakyRelu2
 
 
 todo
@@ -24,4 +25,4 @@ todo
 10.debug梯度测试判断训练效果，避免梯度爆炸，clip反向传播的范围
 11.leaky_relu作激活函数 ok
 12.修改网络结构为菱形[128, 256, 512, 256, 128] ok
-13.obs数量级
+13.obs数量级 ok
