@@ -35,6 +35,12 @@ def LoadData(filename, directory="data"):
         file_path = os.path.join(directory, filename + "-" + str(i) + ".npy")
         data.append(np.load(file_path))
     return data
+def callable_env(env_id, kwargs):
+    def aux():
+        env = env_id(**kwargs)
+        return env
+
+    return aux
 
 class SaveModelCallback(BaseCallback):
     """
@@ -56,7 +62,7 @@ class SaveModelCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         if self.n_calls % self.save_freq == 0:
-            self.model.save(os.path.join(self.save_path + "model/", f"modelVxLeakyRelu2_{self.num_timesteps}.zip"))
+            self.model.save(os.path.join(self.save_path + "model/", f"modelVxLeakyRelu3_{self.num_timesteps}.zip"))
         return True
 
 def make_env():
@@ -91,7 +97,7 @@ if __name__ == "__main__":
 
     env = SubprocVecEnv([make_env for _ in range(num_envs)])
 
-    # env = VecNormalize(env, norm_obs=True)
+    # env = VecNormalize(env, norm_obs=True, norm_reward=False)
 
     env = VecMonitor(env)
 
@@ -102,36 +108,61 @@ if __name__ == "__main__":
     # policy_kwargs_SAC = dict(activation_fn=torch.nn.ReLU,
     #                          net_arch=[512, 256, 128])
 
+    ppo_config = {  "gamma":0.99, 
+                    "n_steps": 2048, 
+                    "ent_coef":0.0, 
+                    "learning_rate":2.5e-4, 
+                    "vf_coef":0.5,
+                    "max_grad_norm":0.5, 
+                    "gae_lambda":0.95, 
+                    "batch_size":128,
+                    "n_epochs":10, 
+                    "clip_range":0.2, 
+                    "clip_range_vf":1,
+                    "verbose":1, 
+                    "tensorboard_log":"./phantomx_tensorboard_test/", 
+                    "_init_setup_model":True, 
+                    "policy_kwargs":policy_kwargs,
+                    "device": device}
+    
     # model = SAC("MlpPolicy", env, policy_kwargs=policy_kwargs_SAC, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
-    model = PPO("MlpPolicy", env, device=device, policy_kwargs=policy_kwargs, learning_rate=2.5e-4, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
+    # model = PPO("MlpPolicy", env, device=device, policy_kwargs=policy_kwargs, learning_rate=2.5e-4, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
+    model = PPO("MlpPolicy", env, **ppo_config)
     # model = PPO.load(log_dir + "model/modelVxP2_22400000", env=env)
     # model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
     # model = PPO.load(log_dir + "model/modelVxPPPOaction_12805632", env=env)
     # model = SAC.load(log_dir + "model/modelVxPSAC_1400000", env=env)
     model.learn(
         # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run"
-        total_timesteps=16*300*3000, reset_num_timesteps=True, tb_log_name=tb_log_name, callback=callback
+        total_timesteps=16*300*2200, reset_num_timesteps=True, tb_log_name=tb_log_name, callback=callback
         # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name=tb_log_name
         # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run", callback=callback
     )
 
     model.save(log_dir + "ppo_phantomx_trackvel")
+    # env.save(log_dir + "ppo_phantomx_trackvelEnv")
     # model.save(log_dir + "sac_phantomx_trackvel")
 
     print("Model saved!")
 
     del model, env
-# -----------------------------加载模型检验时注释该部分--------------------------------
+# -----------------------------加载模型检验时注释该部分--------------------------------\
     env = PhantomxGymEnv(render=True, set_goal_flag=True)
+    # VecNormalize env read
+    # env_kwargs = {"render": True, "set_goal_flag": True}
+    # env = callable_env(PhantomxGymEnv, env_kwargs)
+    # env = make_vec_env(env, n_envs=1)
+    # env = VecNormalize.load(log_dir + "ppo_phantomx_trackvelEnv", env)
+    # env.training = False
+    # env.norm_reward = False
 
-    # model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
-    model = PPO.load(log_dir + "model/modelVxLeakyRelu2_12800000", env=env)
+    model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
+    # model = PPO.load(log_dir + "model/modelVxLeakyRelu2_12800000", env=env)
     # model = PPO.load(log_dir + "model/modelVxPELU_19223552", env=env)
     # model = PPO.load(log_dir + "model/modelVxPRelu10_31242752", env=env)
     # model = SAC.load(log_dir + "model/modelVxPSAC_1400000", env=env)
 
     env.set_goal_state([0.52, 0.0, 0.0])
-
     obs = env.reset()
 
     # InitModules()
@@ -167,10 +198,11 @@ if __name__ == "__main__":
         # print("action", action)
         # env.setMotorCommand(motorcommands)
 
-        obs, rewards, dones, info = env.step(action=action)
+        obs, rewards, dones, info = env.step(action)
         # print("action:", action)
         # print(rewards)
         # print(dones)
+
         base_height = env.phantomx.GetBaseHigh()
         # print("base_height=", base_height)
         orientation = env.phantomx.GetBaseOrientation()
@@ -179,6 +211,8 @@ if __name__ == "__main__":
         robot_angularvel = env.phantomx.GetTrueBodyAngularVelocity()
         motor_vel = env.phantomx.GetTrueMotorVelocities()
         motor_torques = env.phantomx.GetTrueMotorTorques()
+
+
         # print("motor_torques: ", motor_torques)
         # print("motor_vel: ", motor_vel)
         # print("linearvel: ", robot_linearvel)
