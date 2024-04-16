@@ -10,7 +10,8 @@
 2024.4.12 增加action rate惩罚项，对action的变化值做惩罚，训练效果一般，未收敛到预期值，action取值有收缩趋势但仍然较为随机。 LOG-14 modelVxPPPOA
 2024.4.13 修改reward function为线性函数，修改网络结构为[128 256 512 256 128]，缩短CPG周前为100，修改单次训练episode为300，修改leaky_relu作为激活函数。基本收敛，action取值出现取值在边界值的情况，且action取值还是较为随机。 LOG-15 modelVxLeakyRelu
 2024.4.14 reward增加即时速度惩罚和action rate惩罚。未收敛到目标值，action取值较为随机。 LOG-16 modelVxLeakyRelu2
-2024.4.15 reward去掉了即时速度惩罚，修改了一下PPO参数设置，尝试用VecNormalize，但是由于一直存在读取模型和环境测试时无法直接调用环境里的成员和函数遂放弃使用。训练结果一般，未收敛到目标reward值，action取值还较为随机。 LOG-16 modelVxLeakyRelu3
+2024.4.15 reward去掉了即时速度惩罚，修改了一下PPO参数设置，尝试用VecNormalize，但是由于一直存在读取模型和环境测试时无法直接调用环境里的成员和函数遂放弃使用。训练结果一般，未收敛到目标reward值，action取值还较为随机。 LOG-17 modelVxLeakyRelu3
+2024.4.16 在17的基础上增加了Vecnormalize，效果和每加差不多。 LOG-18 modelVxLeakyRelu14
 
 todo
 1.尝试用SAC代替PPO，看是否能解决action取值在边界值的问题 ok

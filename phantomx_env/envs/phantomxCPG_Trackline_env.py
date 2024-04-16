@@ -355,7 +355,7 @@ class PhantomxGymEnv(gym.Env):
     def penalty_function(self, desired_x, current_x, angvel_flag):
         if angvel_flag:
             return -(current_x - desired_x)**2 / 10
-        return -(current_x - desired_x)**2
+        return -(current_x - desired_x)
         # return -abs(current_x - desired_x)
 
     # 只有x方向平均速度
