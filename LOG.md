@@ -12,6 +12,8 @@
 2024.4.14 reward增加即时速度惩罚和action rate惩罚。未收敛到目标值，action取值较为随机。 LOG-16 modelVxLeakyRelu2
 2024.4.15 reward去掉了即时速度惩罚，修改了一下PPO参数设置，尝试用VecNormalize，但是由于一直存在读取模型和环境测试时无法直接调用环境里的成员和函数遂放弃使用。训练结果一般，未收敛到目标reward值，action取值还较为随机。 LOG-17 modelVxLeakyRelu3
 2024.4.16 在17的基础上增加了Vecnormalize，效果和每加差不多。 LOG-18 modelVxLeakyRelu14
+2024.4.17 在17的基础上去掉了action rate，收敛到的值没什么变化。LOG-19 modelVxLeakyRelu15
+
 
 todo
 1.尝试用SAC代替PPO，看是否能解决action取值在边界值的问题 ok

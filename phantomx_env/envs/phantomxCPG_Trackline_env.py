@@ -63,7 +63,7 @@ class PhantomxGymEnv(gym.Env):
                 #  intime_x_velocity = 3.0,
                 #  intime_y_velocity = 3.0,
                 #  intime_yaw_velocity = 3.0,
-                 action_rate = 5.0,
+                 action_rate = 0.0,
                  hard_reset=True,
                  phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/phantomx_description"):
                 # phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/hexapod_34/urdf"):
@@ -354,7 +354,7 @@ class PhantomxGymEnv(gym.Env):
     
     def penalty_function(self, desired_x, current_x, angvel_flag):
         if angvel_flag:
-            return -(current_x - desired_x)**2 / 10
+            return -(current_x - desired_x)
         return -(current_x - desired_x)
         # return -abs(current_x - desired_x)
 

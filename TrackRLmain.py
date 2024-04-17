@@ -62,7 +62,7 @@ class SaveModelCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         if self.n_calls % self.save_freq == 0:
-            self.model.save(os.path.join(self.save_path + "model/", f"modelVxLeakyRelu4_{self.num_timesteps}.zip"))
+            self.model.save(os.path.join(self.save_path + "model/", f"modelVxLeakyRelu5_{self.num_timesteps}.zip"))
         return True
 
 def make_env():
@@ -89,205 +89,205 @@ if __name__ == "__main__":
 
     log_dir = "/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/"
 # -----------------------------加载模型检验时注释该部分--------------------------------
-    # env = PhantomxGymEnv()
+    # # env = PhantomxGymEnv()
 
-    # env = make_vec_env(lambda: env, n_envs=num_envs, monitor_dir=log_dir + "tensorboard_log/", seed=0, wrapper_kwargs=dict(), vec_env_cls=SubprocVecEnv)
+    # # env = make_vec_env(lambda: env, n_envs=num_envs, monitor_dir=log_dir + "tensorboard_log/", seed=0, wrapper_kwargs=dict(), vec_env_cls=SubprocVecEnv)
     
-    # env = SubprocVecEnv(envs)
+    # # env = SubprocVecEnv(envs)
 
-    env = SubprocVecEnv([make_env for _ in range(num_envs)])
+    # env = SubprocVecEnv([make_env for _ in range(num_envs)])
 
-    env = VecNormalize(env, norm_obs=True, norm_reward=False)
+    # # env = VecNormalize(env, norm_obs=True, norm_reward=False)
 
-    env = VecMonitor(env)
+    # env = VecMonitor(env)
 
-    callback = SaveModelCallback(save_freq=5e4, save_path=log_dir)
+    # callback = SaveModelCallback(save_freq=5e4, save_path=log_dir)
 
-    policy_kwargs = dict(activation_fn=torch.nn.LeakyReLU,
-                        net_arch=[dict(pi=[128, 256, 512, 256, 128], vf=[128, 256, 512 ,256, 128])])
-    # policy_kwargs_SAC = dict(activation_fn=torch.nn.ReLU,
-    #                          net_arch=[512, 256, 128])
+    # policy_kwargs = dict(activation_fn=torch.nn.LeakyReLU,
+    #                     net_arch=[dict(pi=[128, 256, 512, 256, 128], vf=[128, 256, 512 ,256, 128])])
+    # # policy_kwargs_SAC = dict(activation_fn=torch.nn.ReLU,
+    # #                          net_arch=[512, 256, 128])
 
-    ppo_config = {  "gamma":0.99, 
-                    "n_steps": 2048, 
-                    "ent_coef":0.0, 
-                    "learning_rate":2.5e-4, 
-                    "vf_coef":0.5,
-                    "max_grad_norm":0.5, 
-                    "gae_lambda":0.95, 
-                    "batch_size":128,
-                    "n_epochs":10, 
-                    "clip_range":0.2, 
-                    "clip_range_vf":1,
-                    "verbose":1, 
-                    "tensorboard_log":"./phantomx_tensorboard_test/", 
-                    "_init_setup_model":True, 
-                    "policy_kwargs":policy_kwargs,
-                    "device": device}
+    # ppo_config = {  "gamma":0.99, 
+    #                 "n_steps": 2048, 
+    #                 "ent_coef":0.0, 
+    #                 "learning_rate":2.5e-4, 
+    #                 "vf_coef":0.5,
+    #                 "max_grad_norm":0.5, 
+    #                 "gae_lambda":0.95, 
+    #                 "batch_size":128,
+    #                 "n_epochs":10, 
+    #                 "clip_range":0.2, 
+    #                 "clip_range_vf":1,
+    #                 "verbose":1, 
+    #                 "tensorboard_log":"./phantomx_tensorboard_test/", 
+    #                 "_init_setup_model":True, 
+    #                 "policy_kwargs":policy_kwargs,
+    #                 "device": device}
     
-    # model = SAC("MlpPolicy", env, policy_kwargs=policy_kwargs_SAC, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
-    # model = PPO("MlpPolicy", env, device=device, policy_kwargs=policy_kwargs, learning_rate=2.5e-4, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
-    model = PPO("MlpPolicy", env, **ppo_config)
-    # model = PPO.load(log_dir + "model/modelVxP2_22400000", env=env)
-    # model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
-    # model = PPO.load(log_dir + "model/modelVxPPPOaction_12805632", env=env)
-    # model = SAC.load(log_dir + "model/modelVxPSAC_1400000", env=env)
-    model.learn(
-        # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run"
-        total_timesteps=16*300*2600, reset_num_timesteps=True, tb_log_name=tb_log_name, callback=callback
-        # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name=tb_log_name
-        # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run", callback=callback
-    )
+    # # model = SAC("MlpPolicy", env, policy_kwargs=policy_kwargs_SAC, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
+    # # model = PPO("MlpPolicy", env, device=device, policy_kwargs=policy_kwargs, learning_rate=2.5e-4, verbose=1, tensorboard_log="./phantomx_tensorboard_test/")
+    # model = PPO("MlpPolicy", env, **ppo_config)
+    # # model = PPO.load(log_dir + "model/modelVxP2_22400000", env=env)
+    # # model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
+    # # model = PPO.load(log_dir + "model/modelVxPPPOaction_12805632", env=env)
+    # # model = SAC.load(log_dir + "model/modelVxPSAC_1400000", env=env)
+    # model.learn(
+    #     # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run"
+    #     total_timesteps=16*300*2400, reset_num_timesteps=True, tb_log_name=tb_log_name, callback=callback
+    #     # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name=tb_log_name
+    #     # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run", callback=callback
+    # )
 
-    model.save(log_dir + "ppo_phantomx_trackvel")
-    env.save(log_dir + "ppo_phantomx_trackvelEnv")
-    # model.save(log_dir + "sac_phantomx_trackvel")
+    # model.save(log_dir + "ppo_phantomx_trackvel")
+    # # env.save(log_dir + "ppo_phantomx_trackvelEnv")
+    # # model.save(log_dir + "sac_phantomx_trackvel")
 
-    print("Model saved!")
+    # print("Model saved!")
 
-    del model, env
+    # del model, env
 # -----------------------------加载模型检验时注释该部分--------------------------------\
-#     env = PhantomxGymEnv(render=True, set_goal_flag=True)
-#     # VecNormalize env read
-#     # env_kwargs = {"render": True, "set_goal_flag": True}
-#     # env = callable_env(PhantomxGymEnv, env_kwargs)
-#     # env = make_vec_env(env, n_envs=1)
-#     # env = VecNormalize.load(log_dir + "ppo_phantomx_trackvelEnv", env)
-#     # env.training = False
-#     # env.norm_reward = False
+    env = PhantomxGymEnv(render=True, set_goal_flag=True)
+    # VecNormalize env read
+    # env_kwargs = {"render": True, "set_goal_flag": True}
+    # env = callable_env(PhantomxGymEnv, env_kwargs)
+    # env = make_vec_env(env, n_envs=1)
+    # env = VecNormalize.load(log_dir + "ppo_phantomx_trackvelEnv", env)
+    # env.training = False
+    # env.norm_reward = False
 
-#     model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
-#     # model = PPO.load(log_dir + "model/modelVxLeakyRelu2_12800000", env=env)
-#     # model = PPO.load(log_dir + "model/modelVxPELU_19223552", env=env)
-#     # model = PPO.load(log_dir + "model/modelVxPRelu10_31242752", env=env)
-#     # model = SAC.load(log_dir + "model/modelVxPSAC_1400000", env=env)
+    model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
+    # model = PPO.load(log_dir + "model/modelVxLeakyRelu2_12800000", env=env)
+    # model = PPO.load(log_dir + "model/modelVxPELU_19223552", env=env)
+    # model = PPO.load(log_dir + "model/modelVxPRelu10_31242752", env=env)
+    # model = SAC.load(log_dir + "model/modelVxPSAC_1400000", env=env)
 
-#     env.set_goal_state([0.52, 0.0, 0.0])
-#     obs = env.reset()
+    env.set_goal_state([0.52, 0.0, 0.0])
+    obs = env.reset()
 
-#     # InitModules()
-#     PltModule = PlotModuleAssistor()
-#     CPGModule = PhantomxCPG()
-#     ActionModule = ActionModuleSelector()
-#     OnlineCPGModule = OnlinePhantomxCPG()
+    # InitModules()
+    PltModule = PlotModuleAssistor()
+    CPGModule = PhantomxCPG()
+    ActionModule = ActionModuleSelector()
+    OnlineCPGModule = OnlinePhantomxCPG()
 
-#     TrueMotorAngle = []
-#     BaseOrientation = []
-#     TrueBodyVelocity = []
-#     TrueBodyAngVelocity = []
-#     TrueMotorVel = []
-#     Rewards = []
-#     Action = []
+    TrueMotorAngle = []
+    BaseOrientation = []
+    TrueBodyVelocity = []
+    TrueBodyAngVelocity = []
+    TrueMotorVel = []
+    Rewards = []
+    Action = []
 
-#     # history_data = np.array([-1.0] * ((6 * 3) * 2)).reshape(1, -1)
-#     history_data = np.array([0.29616917,  1.04204406, -0.37516158, -1.01642539,  0.29616917,  1.04204406,
-#                         -0.37516158, -1.01642539,  0.29616917,  1.04204406, -0.37516158, -1.01642539,
-#                         -1.97166912,  0.36889423, -1.97166912,  0.36889423,  1.86400333, -0.74193836,
-#                         1.86400333, -0.74193836, -1.97166912,  0.36889423, -1.97166912,  0.36889423,
-#                         1.86400333, -0.74193836,  1.86400333, -0.74193836, -1.97166912,  0.36889423,
-#                         -1.97166912, 0.36889423,  1.86400333, -0.74193836,  1.86400333, -0.74193836]).reshape(1, -1)
+    # history_data = np.array([-1.0] * ((6 * 3) * 2)).reshape(1, -1)
+    history_data = np.array([0.29616917,  1.04204406, -0.37516158, -1.01642539,  0.29616917,  1.04204406,
+                        -0.37516158, -1.01642539,  0.29616917,  1.04204406, -0.37516158, -1.01642539,
+                        -1.97166912,  0.36889423, -1.97166912,  0.36889423,  1.86400333, -0.74193836,
+                        1.86400333, -0.74193836, -1.97166912,  0.36889423, -1.97166912,  0.36889423,
+                        1.86400333, -0.74193836,  1.86400333, -0.74193836, -1.97166912,  0.36889423,
+                        -1.97166912, 0.36889423,  1.86400333, -0.74193836,  1.86400333, -0.74193836]).reshape(1, -1)
 
-# # -----------------------------训练时注释该部分--------------------------------
-#     for i in range(TIME):
-#         action, _states = model.predict(obs)
-#         # action = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-#         # action = [0.523599, 0.523599, 0.523599, -0.523599, -0.523599, -0.523599, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
-#         # action = [-0.523599, -0.523599, -0.523599, 0.523599, 0.523599, 0.523599, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
-#         # action = [0.9, 0.9, 0.9, 0.9, 0.9, 0.9, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
+# -----------------------------训练时注释该部分--------------------------------
+    for i in range(TIME):
+        action, _states = model.predict(obs)
+        # action = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        action = [0.523599, 0.523599, 0.523599, -0.523599, -0.523599, -0.523599, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
+        # action = [-0.523599, -0.523599, -0.523599, 0.523599, 0.523599, 0.523599, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
+        # action = [0.9, 0.9, 0.9, 0.9, 0.9, 0.9, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
         
-#         # print("action", action)
-#         # env.setMotorCommand(motorcommands)
+        # print("action", action)
+        # env.setMotorCommand(motorcommands)
 
-#         obs, rewards, dones, info = env.step(action)
-#         # print("action:", action)
-#         # print(rewards)
-#         # print(dones)
+        obs, rewards, dones, info = env.step(action)
+        # print("action:", action)
+        # print(rewards)
+        # print(dones)
 
-#         base_height = env.phantomx.GetBaseHigh()
-#         # print("base_height=", base_height)
-#         orientation = env.phantomx.GetBaseOrientation()
-#         base_position = env.phantomx.GetBasePosition()
-#         robot_linearvel = env.phantomx.GetTrueBodyLinearVelocity()
-#         robot_angularvel = env.phantomx.GetTrueBodyAngularVelocity()
-#         motor_vel = env.phantomx.GetTrueMotorVelocities()
-#         motor_torques = env.phantomx.GetTrueMotorTorques()
+        base_height = env.phantomx.GetBaseHigh()
+        # print("base_height=", base_height)
+        orientation = env.phantomx.GetBaseOrientation()
+        base_position = env.phantomx.GetBasePosition()
+        robot_linearvel = env.phantomx.GetTrueBodyLinearVelocity()
+        robot_angularvel = env.phantomx.GetTrueBodyAngularVelocity()
+        motor_vel = env.phantomx.GetTrueMotorVelocities()
+        motor_torques = env.phantomx.GetTrueMotorTorques()
 
 
-#         # print("motor_torques: ", motor_torques)
-#         # print("motor_vel: ", motor_vel)
-#         # print("linearvel: ", robot_linearvel)
-#         # print("angvel: ", robot_angularvel)
-#         # print("base_position: ", base_position)
-#         # print("TrueMotroAngle: ", env.phantomx.GetTrueMotorAngles())
-#         # print("orientation: ", orientation)
-#         # sopActions = env.phantomx.ConvertActionToLegAngle_Tripod(action)
+        # print("motor_torques: ", motor_torques)
+        # print("motor_vel: ", motor_vel)
+        # print("linearvel: ", robot_linearvel)
+        # print("angvel: ", robot_angularvel)
+        # print("base_position: ", base_position)
+        # print("TrueMotroAngle: ", env.phantomx.GetTrueMotorAngles())
+        # print("orientation: ", orientation)
+        # sopActions = env.phantomx.ConvertActionToLegAngle_Tripod(action)
         
-#         motor_angle = env.phantomx.GetTrueMotorAngles()
-#         Rewards.append(rewards)
-#         TrueMotorAngle.append(motor_angle)
-#         Action.append(action[0])
-#         # print("motor_angle: ", motor_angle)
-#         # BaseOrientation.append(orientation)
-#         # TrueBodyVelocity.append(robot_linearvel)
-#         # TrueBodyAngVelocity.append(robot_angularvel)
-#         # TrueMotorVel.append(motor_vel)
+        motor_angle = env.phantomx.GetTrueMotorAngles()
+        Rewards.append(rewards)
+        TrueMotorAngle.append(motor_angle)
+        Action.append(action[0])
+        # print("motor_angle: ", motor_angle)
+        # BaseOrientation.append(orientation)
+        # TrueBodyVelocity.append(robot_linearvel)
+        # TrueBodyAngVelocity.append(robot_angularvel)
+        # TrueMotorVel.append(motor_vel)
         
-#         # if dones:
-#         #     env.reset()
-#         # env.render()
+        # if dones:
+        #     env.reset()
+        # env.render()
 
-#     # # 绘制各种observation的图像曲线
-#     # plt.figure()
-#     # plt.title("BaseOritentation")
-#     # plt.plot(BaseOrientation)
-#     # plt.legend()
-#     # plt.savefig(log_dir+"orientation")
-#     # plt.close()
+    # # 绘制各种observation的图像曲线
+    # plt.figure()
+    # plt.title("BaseOritentation")
+    # plt.plot(BaseOrientation)
+    # plt.legend()
+    # plt.savefig(log_dir+"orientation")
+    # plt.close()
 
-#     # plt.figure()
-#     # plt.title("TrueBodyVel")
-#     # plt.plot(TrueBodyVelocity)
-#     # plt.legend()
-#     # plt.savefig(log_dir+"bodyVel")
-#     # plt.close()
+    # plt.figure()
+    # plt.title("TrueBodyVel")
+    # plt.plot(TrueBodyVelocity)
+    # plt.legend()
+    # plt.savefig(log_dir+"bodyVel")
+    # plt.close()
 
-#     # plt.figure()
-#     # plt.title("TrueAngVel")
-#     # plt.plot(TrueBodyAngVelocity)
-#     # plt.legend()
-#     # plt.savefig(log_dir+"bodyAng")
-#     # plt.close()
+    # plt.figure()
+    # plt.title("TrueAngVel")
+    # plt.plot(TrueBodyAngVelocity)
+    # plt.legend()
+    # plt.savefig(log_dir+"bodyAng")
+    # plt.close()
 
-#     # plt.figure()
-#     # plt.title("BaseOritentation")
-#     # plt.plot(BaseOrientation)
-#     # plt.legend()
-#     # plt.savefig(log_dir+"orientation")
-#     # plt.close()
+    # plt.figure()
+    # plt.title("BaseOritentation")
+    # plt.plot(BaseOrientation)
+    # plt.legend()
+    # plt.savefig(log_dir+"orientation")
+    # plt.close()
 
-#     # plt.figure()
-#     # plt.title("MotorVel")
-#     # plt.plot(TrueMotorVel)
-#     # plt.legend()
-#     # plt.savefig(log_dir+"MotorVel")
-#     # plt.close()
+    # plt.figure()
+    # plt.title("MotorVel")
+    # plt.plot(TrueMotorVel)
+    # plt.legend()
+    # plt.savefig(log_dir+"MotorVel")
+    # plt.close()
 
 
-#     # 绘制关节角度随时间变化的图像
-#     TrueLegAngle = [ [] for _ in range(18) ]
+    # 绘制关节角度随时间变化的图像
+    TrueLegAngle = [ [] for _ in range(18) ]
 
-#     for i in range(TIME):
-#     # for i in range(100):
-#         for j in range(18):
-#             TrueLegAngle[j].append(TrueMotorAngle[i][j])
+    for i in range(TIME):
+    # for i in range(100):
+        for j in range(18):
+            TrueLegAngle[j].append(TrueMotorAngle[i][j])
 
-#     PltModule.plot(data=TrueLegAngle, plt_mode=0)
-#     PltModule.plot(data=TrueLegAngle, plt_mode=1)
-#     PltModule.plot(data=TrueLegAngle, plt_mode=2)
-#     PltModule.plot(data=Rewards, plt_mode=10)
-#     PltModule.plot(data=Action, plt_mode=12)
-#     # PltModule.plot(data=Rewards, plt_mode=11, save_name="ForwardReward")
-#     plt.close('all')
+    PltModule.plot(data=TrueLegAngle, plt_mode=0)
+    PltModule.plot(data=TrueLegAngle, plt_mode=1)
+    PltModule.plot(data=TrueLegAngle, plt_mode=2)
+    PltModule.plot(data=Rewards, plt_mode=10)
+    PltModule.plot(data=Action, plt_mode=12)
+    # PltModule.plot(data=Rewards, plt_mode=11, save_name="ForwardReward")
+    plt.close('all')
 # -----------------------------训练时注释该部分--------------------------------
 
     #todo
