@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 history_data = np.array([0.29616917,  1.04204406, -0.37516158, -1.01642539,  0.29616917,  1.04204406,
                     -0.37516158, -1.01642539,  0.29616917,  1.04204406, -0.37516158, -1.01642539,
@@ -9,3 +10,5 @@ history_data = np.array([0.29616917,  1.04204406, -0.37516158, -1.01642539,  0.2
 print(history_data)
 data = np.array([history_data[0][0], history_data[0][1], history_data[0][2], history_data[0][3]])
 print("data", data)
+path = os.getcwd()
+print(path)

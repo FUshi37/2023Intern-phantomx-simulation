@@ -12,9 +12,10 @@ from gym.utils import seeding
 from phantomx_env.envs.phantomxCPG_Trackline import Phantomx
 import math
 import time
-
+import os
 import sys
-sys.path.append('/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/src')
+# sys.path.append('/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/src')
+
 
 from src.CentralPatternGenerators.Hpof import PhantomxCPG
 from src.AssistModulesCode.MatPlotAssitor import PlotModuleAssistor
@@ -27,6 +28,8 @@ NUM_MOTORS = 18
 LISTLEN = 50
 FREC = 100.0 
 REWARD_FACTOR = 0.25
+
+current_path = os.getcwd()
 
 class LimitedList:
     def __init__(self, limit):
@@ -65,12 +68,14 @@ class PhantomxGymEnv(gym.Env):
                 #  intime_yaw_velocity = 3.0,
                  action_rate = 0.0,
                  hard_reset=True,
-                 phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/phantomx_description"):
+                 phantomx_urdf_root = current_path + "/phantomx_description"):
+                #  phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/phantomx_description"):
                 # phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/hexapod_34/urdf"):
         super(PhantomxGymEnv, self).__init__()  
         self._urdf_root = urdf_root
         self._phantomx_urdf_root = phantomx_urdf_root
-        self._obs_urdf_root = "/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/ObstacleReg/urdf"
+        # self._obs_urdf_root = "/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/ObstacleReg/urdf"
+        self._obs_urdf_root = current_path + "/ObstacleReg/urdf"
         self._observation = []
         self._norm_observation = []
         self._env_step_counter = 0
