@@ -62,7 +62,7 @@ class SaveModelCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         if self.n_calls % self.save_freq == 0:
-            self.model.save(os.path.join(self.save_path + "model/", f"modelVxLeakyRelu5_{self.num_timesteps}.zip"))
+            self.model.save(os.path.join(self.save_path + "model/", f"modelVxLeakyRelu7_{self.num_timesteps}.zip"))
         return True
 
 def make_env():
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     # # model = SAC.load(log_dir + "model/modelVxPSAC_1400000", env=env)
     # model.learn(
     #     # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run"
-    #     total_timesteps=16*300*2400, reset_num_timesteps=True, tb_log_name=tb_log_name, callback=callback
+    #     total_timesteps=16*300*2600, reset_num_timesteps=True, tb_log_name=tb_log_name, callback=callback
     #     # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name=tb_log_name
     #     # total_timesteps=8192*20, reset_num_timesteps=True, tb_log_name="first_run", callback=callback
     # )

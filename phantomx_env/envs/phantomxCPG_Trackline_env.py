@@ -54,12 +54,12 @@ class PhantomxGymEnv(gym.Env):
                  set_goal_flag=False,
                  distance_limit=3,
                  forward_reward_cap=float("inf"), 
-                 x_velocity_weight = 20.0,# 
-                 y_velocity_weight = 5.00,# 2
-                 yaw_velocity_weight = 5.0,# 2
+                 x_velocity_weight = 26.0,# 
+                 y_velocity_weight = 2.00,# 2
+                 yaw_velocity_weight = 2.0,# 2
                  height_weight = 5.0,#20
                  shakevel_weight = 5.0,#2
-                 energy_weight = 20.0,#0.5
+                 energy_weight = 15.0,#0.5
                 #  intime_x_velocity = 3.0,
                 #  intime_y_velocity = 3.0,
                 #  intime_yaw_velocity = 3.0,
@@ -348,9 +348,9 @@ class PhantomxGymEnv(gym.Env):
         if current_x == desired_x:
             return 1
         elif current_x < desired_x:
-            return current_x - desired_x + 1
+            return 10 * (current_x - desired_x) + 1
         else:
-            return -current_x + desired_x + 1
+            return 10 * (-current_x + desired_x) + 1
     
     def penalty_function(self, desired_x, current_x, angvel_flag):
         if angvel_flag:
@@ -444,13 +444,13 @@ class PhantomxGymEnv(gym.Env):
 
         # Penalty for energy consumption.
         delta_ang = np.abs(current_joint_angles - self._last_motor_angle)
-        if self._env_step_counter < 30:
+        if self._env_step_counter < 10:
             # energy_reward = -np.abs(
             # np.dot(current_joint_torques,
             #        current_joint_angvelocities)) * self._time_step / 10
             energy_reward = -np.abs(
             np.dot(current_joint_torques,
-                   delta_ang)) * self._time_step
+                   delta_ang)) * self._time_step / 10
         else:
             # energy_reward = -np.abs(
             # np.dot(current_joint_torques,
