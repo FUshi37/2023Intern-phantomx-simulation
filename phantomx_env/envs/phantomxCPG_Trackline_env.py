@@ -57,12 +57,12 @@ class PhantomxGymEnv(gym.Env):
                  set_goal_flag=False,
                  distance_limit=3,
                  forward_reward_cap=float("inf"), 
-                 x_velocity_weight = 26.0,# 
+                 x_velocity_weight = 26.0,# 26 
                  y_velocity_weight = 2.00,# 2
                  yaw_velocity_weight = 2.0,# 2
-                 height_weight = 5.0,#20
-                 shakevel_weight = 5.0,#2
-                 energy_weight = 15.0,#0.5
+                 height_weight = 5.0,# 5
+                 shakevel_weight = 5.0,# 5
+                 energy_weight = 100.0,#0.5
                 #  intime_x_velocity = 3.0,
                 #  intime_y_velocity = 3.0,
                 #  intime_yaw_velocity = 3.0,
@@ -353,14 +353,14 @@ class PhantomxGymEnv(gym.Env):
         if current_x == desired_x:
             return 1
         elif current_x < desired_x:
-            return 10 * (current_x - desired_x) + 1
+            return 5 * (current_x - desired_x) + 1
         else:
-            return 10 * (-current_x + desired_x) + 1
+            return 5 * (-current_x + desired_x) + 1
     
     def penalty_function(self, desired_x, current_x, angvel_flag):
         if angvel_flag:
-            return -(current_x - desired_x)
-        return -(current_x - desired_x)
+            return -5*(current_x - desired_x)
+        return -5*(current_x - desired_x)
         # return -abs(current_x - desired_x)
 
     # 只有x方向平均速度
