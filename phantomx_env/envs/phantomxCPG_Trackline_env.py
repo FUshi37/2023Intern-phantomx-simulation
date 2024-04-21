@@ -66,7 +66,7 @@ class PhantomxGymEnv(gym.Env):
                 #  intime_x_velocity = 3.0,
                 #  intime_y_velocity = 3.0,
                 #  intime_yaw_velocity = 3.0,
-                 action_rate = 0.0,
+                 action_rate = 1.0,
                  hard_reset=True,
                  phantomx_urdf_root = current_path + "/phantomx_description"):
                 #  phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/phantomx_description"):
@@ -353,14 +353,14 @@ class PhantomxGymEnv(gym.Env):
         if current_x == desired_x:
             return 1
         elif current_x < desired_x:
-            return 5 * (current_x - desired_x) + 1
+            return 2 * (current_x - desired_x) + 1
         else:
-            return 5 * (-current_x + desired_x) + 1
+            return 2 * (-current_x + desired_x) + 1
     
     def penalty_function(self, desired_x, current_x, angvel_flag):
         if angvel_flag:
             return -5*(current_x - desired_x)
-        return -5*(current_x - desired_x)
+        return -2*(current_x - desired_x)
         # return -abs(current_x - desired_x)
 
     # 只有x方向平均速度
@@ -441,6 +441,9 @@ class PhantomxGymEnv(gym.Env):
         # Penalty for z velocity
         # height_reward = -abs(current_base_velocity[2]**2)
         height_reward = self.penalty_function(0, current_base_velocity[2], False)
+        # print(self._env_step_counter,current_base_velocity[2])
+        if self._env_step_counter < 60:
+            height_reward = 0
         # Penalty for orientation velocity
         # shakevel_reward = -(abs(current_base_angvelocity[0])**2 + abs(current_base_angvelocity[1])**2)
         shakevel_reward = self.penalty_function(0, current_base_angvelocity[0], True) + self.penalty_function(0, current_base_angvelocity[1], True)
