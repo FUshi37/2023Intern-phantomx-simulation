@@ -13,3 +13,5 @@
     energy_weight=100.0,#0.5
 
     action_rate=1.0,
+
+2024.4.22 训练到10M代码崩掉，penalty函数有BUG，修正BUG

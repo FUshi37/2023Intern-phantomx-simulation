@@ -21,6 +21,7 @@ from src.CentralPatternGenerators.Hpof import PhantomxCPG
 from src.AssistModulesCode.MatPlotAssitor import PlotModuleAssistor
 from src.AssistModulesCode.ActionSelector import ActionModuleSelector
 from src.CentralPatternGenerators.OnlineCPG import OnlinePhantomxCPG
+from src.AssistModulesCode.Euler import quaternion_to_euler
 
 RENDER_HEIGHT = 360
 RENDER_WIDTH = 480
@@ -57,16 +58,17 @@ class PhantomxGymEnv(gym.Env):
                  set_goal_flag=False,
                  distance_limit=3,
                  forward_reward_cap=float("inf"), 
-                 x_velocity_weight = 26.0,# 26 
+                 x_velocity_weight = 26.0,# 26
                  y_velocity_weight = 2.00,# 2
                  yaw_velocity_weight = 2.0,# 2
                  height_weight = 5.0,# 5
                  shakevel_weight = 5.0,# 5
-                 energy_weight = 100.0,#0.5
+                 energy_weight = 100.0,# 100
                 #  intime_x_velocity = 3.0,
                 #  intime_y_velocity = 3.0,
                 #  intime_yaw_velocity = 3.0,
-                 action_rate = 1.0,
+                 action_rate = 1.0, # 1
+                 yaw_weight = 3.0, # 3
                  hard_reset=True,
                  phantomx_urdf_root = current_path + "/phantomx_description"):
                 #  phantomx_urdf_root="/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/phantomx_description"):
@@ -119,7 +121,8 @@ class PhantomxGymEnv(gym.Env):
         # self._objective_weights = [distance_weight, drift_weight, energy_weight, shake_weight, height_weight, shakevel_weight]
         # self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight]
         # self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight, intime_x_velocity, intime_y_velocity, intime_yaw_velocity]
-        self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight, action_rate]
+        # self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight, action_rate]
+        self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight, action_rate, yaw_weight]
         # self._objective_weights = [x_velocity_weight, y_velocity_weight, yaw_velocity_weight, height_weight, shakevel_weight, energy_weight, intime_x_velocity, intime_y_velocity, intime_yaw_velocity, action_rate]
         self._objectives = []
         if self._is_render:
@@ -359,8 +362,8 @@ class PhantomxGymEnv(gym.Env):
     
     def penalty_function(self, desired_x, current_x, angvel_flag):
         if angvel_flag:
-            return -5*(current_x - desired_x)
-        return -2*(current_x - desired_x)
+            return -5 * abs(current_x - desired_x)
+        return -2 * abs(current_x - desired_x)
         # return -abs(current_x - desired_x)
 
     # 只有x方向平均速度
@@ -441,9 +444,8 @@ class PhantomxGymEnv(gym.Env):
         # Penalty for z velocity
         # height_reward = -abs(current_base_velocity[2]**2)
         height_reward = self.penalty_function(0, current_base_velocity[2], False)
-        # print(self._env_step_counter,current_base_velocity[2])
         if self._env_step_counter < 60:
-            height_reward = 0
+            height_reward = height_reward / 10
         # Penalty for orientation velocity
         # shakevel_reward = -(abs(current_base_angvelocity[0])**2 + abs(current_base_angvelocity[1])**2)
         shakevel_reward = self.penalty_function(0, current_base_angvelocity[0], True) + self.penalty_function(0, current_base_angvelocity[1], True)
@@ -484,11 +486,18 @@ class PhantomxGymEnv(gym.Env):
         if self._env_step_counter == 0:
             action_rate_reward = 0
 
+        # yaw angle penalty
+        _, _, yaw = quaternion_to_euler(current_orientation)
+        aim_yaw = np.arctan2(current_goal_state[1], current_goal_state[0])
+        yaw_penalty = self.penalty_function(aim_yaw, yaw, True)
+        if self._env_step_counter == 0:
+            yaw_penalty = 0
+
         # objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward]
         # objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward, intiem_xvel_reward, intiem_yvel_reward, intiem_yawvel_reward]
         # objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward, intiem_xvel_reward, intiem_yvel_reward, intiem_yawvel_reward, action_rate_reward]
-        objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward, action_rate_reward]
-        
+        # objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward, action_rate_reward]
+        objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward, action_rate_reward, yaw_penalty]        
         weighted_objectives = [o * w for o, w in zip(objectives, self._objective_weights)]
         reward = sum(weighted_objectives)
         self._objectives.append(objectives)

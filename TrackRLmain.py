@@ -63,7 +63,7 @@ class SaveModelCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         if self.n_calls % self.save_freq == 0:
-            self.model.save(os.path.join(self.save_path + "model/", f"NUCmodelVxLeakyRelu2_{self.num_timesteps}.zip"))
+            self.model.save(os.path.join(self.save_path + "model/", f"NUCmodelVxLeakyRelu3_{self.num_timesteps}.zip"))
         return True
 
 def make_env():
