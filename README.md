@@ -1,5 +1,5 @@
 
-# 六足实验室实习——六足机器人CPG+RL
+# 六足机器人CPG+RL
 
 ### environment
 
