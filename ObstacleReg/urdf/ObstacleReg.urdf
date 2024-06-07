@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="ObstacleReg">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="4.0911E-17 -0.04 -1.3019E-17"
+        rpy="0 0 0" />
+      <mass
+        value="80" />
+      <inertia
+        ixx="6.7093"
+        ixy="2.8912E-17"
+        ixz="-7.4015E-16"
+        iyy="13.333"
+        iyz="-3.5961E-16"
+        izz="6.7093" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ObstacleReg/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.27059 0.94118 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ObstacleReg/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+</robot>

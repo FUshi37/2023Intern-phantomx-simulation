@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<robot name = "Phantomx">
+    <link name = "base_link">
+        <joint name="j_phantomx_attachment" type="fixed">
+            <parent link="base_link"/>
+            <child link="MP_BODY"/>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+        </joint>
+  <link name="MP_BODY">
+    <inertial>
+      <origin xyz="0 0 0"/>
+      <mass value="1.97559947"/>
+      <inertia ixx="3.1081800" ixy="-0.25460189" ixz="2.0318174" iyy="6.3787776" iyz="0.16417863" izz="5.3316425"/>
+    </inertial>
+    <visual>
+      <!--origin xyz="-0.0235 0 -0.03525" rpy="0 0 0" /-->
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <!--box size="0.102 0.109 0.106" /-->
+        <mesh filename="package://phantomx_description/meshes/body.STL" scale="1 1 1"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.20 0.20 0.20 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://phantomx_description/meshes/body_coll.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>
