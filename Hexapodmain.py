@@ -91,7 +91,8 @@ if __name__ == "__main__":
     print("device: ", device)
     torch.cuda.set_device(0)
 
-    log_dir = "/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/"
+    # log_dir = "/home/yangzhe/Intern/simulation/RL_phantomx_pybullet/"
+    log_dir = "root/tf-logs/"
 # -----------------------------加载模型检验时注释该部分--------------------------------
     # # env = PhantomxGymEnv()
 
