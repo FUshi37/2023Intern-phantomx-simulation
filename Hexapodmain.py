@@ -63,7 +63,8 @@ def make_env():
     env = PhantomxGymEnv()
     return env
 def make_test_env():
-    env = PhantomxGymEnv(render=True)
+    # env = PhantomxGymEnv(render=True)
+    env = PhantomxGymEnv(render=False)
     return env
 
 if __name__ == "__main__":
@@ -130,7 +131,8 @@ if __name__ == "__main__":
     # del model, env
 # -----------------------------加载模型检验时注释该部分--------------------------------
     # 定义正常环境（无标准化）
-    env = PhantomxGymEnv(render=True)
+    # env = PhantomxGymEnv(render=True)
+    env = PhantomxGymEnv(render=False)
     # 读入标准化环境
     # env = SubprocVecEnv([make_test_env for _ in range(1)])
     # env = VecNormalize.load(log_dir + env_log_name, env)

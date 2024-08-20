@@ -18,6 +18,7 @@ tensorboard=2.14.0
 matplotlib=3.7.4
 gym=0.26.2
 datetime
+scipy=1.10.1
 ```
 
 ### files structure
