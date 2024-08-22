@@ -10,8 +10,8 @@ import numpy as np
 from phantomx_env.envs.phantomx_motor import PhantomxMotorModel
 
 
-INIT_POSITION = [0, 0, 0.15]
-INIT_ORIENTATION = [0, 0, 0.707, 0.707]
+INIT_POSITION = [0, 0, 0.2]
+INIT_ORIENTATION = [0, 0, -0.707, 0.707]
 LEG_POSITION = ["leg1", "leg2", "leg3", "leg4", "leg5", "leg6"]
 MOTOR_NAMES = [
     "l1_bc", "l1_cf", "l1_ft",
@@ -35,7 +35,7 @@ B1 = 0
 A2 = -0.25
 B2 = 0.8
 A3 = 0.25
-B3 = 0.6
+B3 = 0.8
 Initial_Action = [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.25, -0.25, -0.25, -0.25, -0.25, -0.25]
 
 class Phantomx:
@@ -58,10 +58,10 @@ class Phantomx:
         self._step_counter = 0
 
         self._motor_model = PhantomxMotorModel(
-            kp=750,
-            kd=5,
-            torque_limits=5,
-            motor_control_mode="PD"
+            kp = 10,
+            kd = 0.01,
+            torque_limits = 30,
+            motor_control_mode = "PD"
         )
         self._applied_motor_torque = []
         self._observed_motor_torques = []
@@ -84,10 +84,11 @@ class Phantomx:
         self.TestTargetVelocity = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     def Step(self, action):
-        self.ApplyAction(action)
+        applied_torque = self.ApplyAction(action)
         self._pybullet_client.stepSimulation()
         self.ReceiveObservation()
         self._step_counter += 1
+        return applied_torque
  
     def Terminate(self):
         pass
@@ -155,12 +156,11 @@ class Phantomx:
                 "%s/hexapod_34.urdf" % self._urdf_root,
                 init_position,
                 flags=self._pybullet_client.URDF_USE_SELF_COLLISION)
-
             self._BuildJointNameToIdDict()
             self._BuildMotorIdList()
-            # self.change_dynamics()
+            self._RemoveDefaultJointDamping()
+            self.change_dynamics()
             self.ResetPose()
-        
         else:
             self._pybullet_client.resetBasePositionAndOrientation(self.my_phantomx, init_position,
                                                                   INIT_ORIENTATION)
@@ -179,8 +179,20 @@ class Phantomx:
     def ResetPose(self):
         """Reset the pose of the hexapod.
         """
-        for i in range(self.num_legs):
-            self._ResetPoseForLeg(i)
+        for i, jointid in enumerate(self._motor_id_list):
+            self._pybullet_client.resetJointState(self.my_phantomx, jointid, 0, targetVelocity=0)
+
+        for motor_id in self._motor_id_list:
+            self._pybullet_client.setJointMotorControl2(
+                bodyIndex = self.my_phantomx,
+                jointIndex = motor_id,
+                controlMode=self._pybullet_client.VELOCITY_CONTROL,
+                targetVelocity = 0,
+                force = 0
+            )
+            
+        # for i in range(self.num_legs):
+        #     self._ResetPoseForLeg(i)
 
     def _ResetPoseForLeg(self, leg_id):
         """Reset the initial pose for the leg.
@@ -188,53 +200,30 @@ class Phantomx:
         Args:
             leg_id: It should be 0, 1, 2, 3, 4, 5, 6....
         """
-        if leg_id % 2 == 0:
-            # targetPositions = [0, -1.09956, 0.0707954249999998]
-            # targetPositions = [0, 0.799, 0.300]
-            targetPositions = [0, 0, 0]
+        if leg_id % 2 == 0 and leg_id < 3:
+            targetPositions = [0, -B2, B3]
+        elif leg_id % 2 == 0 and leg_id >= 3:
+            targetPositions = [0, B2, -B3]
+
+        elif leg_id % 2 == 1 and leg_id < 3:
+            targetPositions = [0, -B2, B3]
         else:
-            # targetPositions = [0, 0.799, 0.300]
-            targetPositions = [0, 0, 0]
+            targetPositions = [0, B2, -B3]
         self._pybullet_client.setJointMotorControlArray(self.my_phantomx,
               jointIndices=self.joint_leg_joint_id[leg_id],
               controlMode=self._pybullet_client.POSITION_CONTROL,
-            #   targetPositions=[0, 0, 0],
               targetPositions = targetPositions,
-              forces=[30, 30, 30],
-            #   forces = [2.8, 2.8, 2.8],
+                forces = [30, 30, 30],
               )
-        # self._pybullet_client.setJointMotorControl2(
-        #   bodyIndex=self.my_phantomx,
-        #   jointIndex=self.joint_leg_joint_id[leg_id][0],
-        #   controlMode=self._pybullet_client.POSITION_CONTROL,
-        #   targetPosition=0,
-        #   force=30)
-        # self._pybullet_client.setJointMotorControl2(
-        #   bodyIndex=self.my_phantomx,
-        #   jointIndex=self.joint_leg_joint_id[leg_id][1],
-        #   controlMode=self._pybullet_client.POSITION_CONTROL,
-        #   targetPosition=0,
-        #   force=30)
-        # self._pybullet_client.setJointMotorControl2(
-        #   bodyIndex=self.my_phantomx,
-        #   jointIndex=self.joint_leg_joint_id[leg_id][2],
-        #   controlMode=self._pybullet_client.POSITION_CONTROL,
-        #   targetPosition=0,
-        #   force=30)
-        # self._pybullet_client.setJointMotorControl2(
-        #   bodyIndex=self.my_phantomx,
-        #   jointIndex=self.joint_leg_joint_id[leg_id][3],
-        #   controlMode=self._pybullet_client.POSITION_CONTROL,
-        #   targetPosition=0,
-        #   force=30)
     
     def change_dynamics(self):
-        self._pybullet_client.changeDynamics(self.my_phantomx, 3, lateralFriction=4.5, frictionAnchor=1)
-        self._pybullet_client.changeDynamics(self.my_phantomx, 7, lateralFriction=4.5, frictionAnchor=1)
-        self._pybullet_client.changeDynamics(self.my_phantomx, 11, lateralFriction=4.5, frictionAnchor=1)
-        self._pybullet_client.changeDynamics(self.my_phantomx, 15, lateralFriction=4.5, frictionAnchor=1)
-        self._pybullet_client.changeDynamics(self.my_phantomx, 19, lateralFriction=4.5, frictionAnchor=1)
-        self._pybullet_client.changeDynamics(self.my_phantomx, 23, lateralFriction=4.5, frictionAnchor=1)
+        self._pybullet_client.changeDynamics(self.my_phantomx, 2, lateralFriction=1.0)
+        self._pybullet_client.changeDynamics(self.my_phantomx, 5, lateralFriction=1.0)
+        self._pybullet_client.changeDynamics(self.my_phantomx, 8, lateralFriction=1.0)
+        self._pybullet_client.changeDynamics(self.my_phantomx, 11, lateralFriction=1.0)
+        self._pybullet_client.changeDynamics(self.my_phantomx, 14, lateralFriction=1.0)
+        # self._pybullet_client.changeDynamics(self.my_phantomx, 23, lateralFriction=4.5, frictionAnchor=1)
+        self._pybullet_client.changeDynamics(self.my_phantomx, 17, lateralFriction=1.0)
         pass
 
     def reset_action(self, actions):
@@ -272,26 +261,6 @@ class Phantomx:
         """
         关节角度action∈[-1, 1]转换成实际关节角度[limit_min, limit_max]
         """
-        # joint_angle = copy.deepcopy(motorcommands)
-        # for i in range(9):
-        #     if i%3 == 0:
-        #         # joint_angle[i] = self.map_range(motorcommands[i], -1.0, 1.0, -actinons[i], actinons[i])
-        #         joint_angle[i] = actinons[i//3] * motorcommands[i]
-        #         joint_angle[i] = -joint_angle[i]
-        #     elif i%3 == 1:
-        #         joint_angle[i] = self.map_range(motorcommands[i], -0.0, 2.0, -actinons[i], actinons[i])
-        #     else:
-        #         joint_angle[i] = self.map_range(motorcommands[i], -0.0, 2.0, -actinons[i], actinons[i])
-        #         # joint_angle[i] = 0.3
-        # for i in range(9):
-        #     if (i+9)%3 == 0:
-        #         joint_angle[i+9] = self.map_range(motorcommands[i+9], -1.0, 1.0, -actinons[i+9], actinons[i+9])
-                
-        #     elif (i+9)%3 == 1:
-        #         joint_angle[i+9] = self.map_range(motorcommands[i+9], -0.0, 2.0, -actinons[i+9], actinons[i+9])
-        #     else:
-        #         joint_angle[i+9] = self.map_range(motorcommands[i+9], -0.0, 2.0, -actinons[i+9], actinons[i+9])
-        #         # joint_angle[i+9] = 0.3
         joint_angle = copy.deepcopy(motorcommands)
         for i in range(18):
             if i%3 == 0:
@@ -463,7 +432,6 @@ class Phantomx:
         return motor_command
 
 
-
     # def ApplyAction(self, motor_commands):
     #     # motor_commands = self.CPGForward(motor_commands)
     #     current_joint_angles = self.GetTrueMotorAngles()
@@ -514,6 +482,8 @@ class Phantomx:
                     # positionGains=[1]*18,
                     # velocityGains=[1]*18
                 )
+        return self._applied_motor_torque
+        # print('applied_motor_torque', self._applied_motor_torque)
 
         # for motor_id, motor_torque, motor_enabled in zip(self._motor_id_list,
         #                                                 self._applied_motor_torque,
@@ -533,4 +503,16 @@ class Phantomx:
         self._pybullet_client.setJointMotorControl2(bodyIndex=self.my_phantomx,
                                                     jointIndex=motor_id,
                                                     controlMode=self._pybullet_client.TORQUE_CONTROL,
-                                                    force=torque)                                                      
+                                                    force=torque)              
+
+    def GetCollisionWithGround(self):
+        collision = self._pybullet_client.getContactPoints(self.my_phantomx)
+        return collision                       
+
+    def _RemoveDefaultJointDamping(self):
+        """Pybullet convention/necessity  """
+        num_joints = 18
+        for i in range(num_joints):
+            joint_info = self._pybullet_client.getJointInfo(self.my_phantomx, i)
+            self._pybullet_client.changeDynamics(
+                joint_info[0], -1, linearDamping=0, angularDamping=0)                 
