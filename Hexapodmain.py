@@ -67,7 +67,9 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
     current_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     # 100HZ控制帧率 + 非标准化环境
-    tb_log_name = "PPO-TrackVelocity-100HZ-xvelP"
+    # tb_log_name = "PPO-Hexapod-runpos"
+    tb_log_name = "PPO-Hexapod-trackvel"
+    # tb_log_name = "PPO-Hexapod-stay"
 
     if torch.cuda.is_available():
         # 获取当前使用的设备
@@ -90,8 +92,9 @@ if __name__ == "__main__":
     # 定步长保存模型
     callback = SaveModelCallback(save_freq=5e4, save_path=log_dir)
 
-    policy_kwargs = dict(activation_fn=torch.nn.LeakyReLU,
-                        net_arch=[dict(pi=[512, 256, 128], vf=[512 ,256, 128])])
+    # policy_kwargs = dict(activation_fn=torch.nn.LeakyReLU,
+    #                     net_arch=[dict(pi=[512, 256, 128], vf=[512 ,256, 128])])
+    policy_kwargs = dict(net_arch=[256,256])
     # policy_kwargs = dict(activation_fn=torch.nn.Tanh,
     #                     net_arch=[dict(pi=[512, 256, 128], vf=[512 ,256, 128])])
     # policy_kwargs = dict(activation_fn=torch.nn.Tanh,
@@ -123,15 +126,14 @@ if __name__ == "__main__":
                     "device": device }
 
     model = PPO("MlpPolicy", env, **ppo_config)
-    # model = PPO.load(log_dir + "ppo_phantomx_trackvel", env=env)
+    # model = PPO.load(log_dir + "ppo_hexapod_trackvel", env=env)
     model.learn(
         # total_timesteps=16*94*5*2400, reset_num_timesteps=True, tb_log_name=tb_log_name, callback=callback
-        total_timesteps=16*94*5*10, reset_num_timesteps=True, tb_log_name=tb_log_name, callback=callback
+        total_timesteps=16*94*5*2000, reset_num_timesteps=True, tb_log_name=tb_log_name, callback=callback
     )
 
-    model.save(log_dir + "ppo_hexapod_trackvel")
-    # env.save(log_dir + "ppo_phantomx_trackvelEnv")
-    # model.save(log_dir + "sac_phantomx_trackvel")
+    model.save(log_dir + "ppo_hexapod_trackvel_4")
+    # model.save(log_dir + "ppo_hexapod_stay")
 
     print("Model saved!")
 

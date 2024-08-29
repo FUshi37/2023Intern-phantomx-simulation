@@ -10,7 +10,7 @@ import numpy as np
 from phantomx_env.envs.phantomx_motor import PhantomxMotorModel
 
 
-INIT_POSITION = [0, 0, 0.2]
+INIT_POSITION = [0, 0, 0.15]
 INIT_ORIENTATION = [0, 0, -0.707, 0.707]
 LEG_POSITION = ["leg1", "leg2", "leg3", "leg4", "leg5", "leg6"]
 MOTOR_NAMES = [
@@ -58,8 +58,8 @@ class Phantomx:
         self._step_counter = 0
 
         self._motor_model = PhantomxMotorModel(
-            kp = 10,
-            kd = 0.01,
+            kp = 5,
+            kd = 0.2,
             torque_limits = 30,
             motor_control_mode = "PD"
         )
@@ -304,6 +304,16 @@ class Phantomx:
         """
         position, _ = (self._pybullet_client.getBasePositionAndOrientation(self.my_phantomx))
         return position
+    
+    def GetBaseOrientationRollPitchYaw(self):
+        """Get quadruped's base orientation in euler angle in the world frame.
+
+        Returns:
+        (roll, pitch, yaw) of the base in world frame.
+        """
+        orientation = self.GetBaseOrientation()
+        roll_pitch_yaw = self._pybullet_client.getEulerFromQuaternion(orientation)
+        return np.asarray(roll_pitch_yaw)
 
     def GetBasePositionAndOrientation(self):
         """Get the position of body.
@@ -313,6 +323,11 @@ class Phantomx:
         position, orientation = (self._pybullet_client.getBasePositionAndOrientation(self.my_phantomx))
         return position, orientation
     
+    def GetBaseLinearVelocity(self):
+        """ Get base linear velocities (dx, dy, dz) """
+        linVel,_ = self._pybullet_client.getBaseVelocity(self.my_phantomx)
+        return np.asarray(linVel)
+
     def GetTrueMotorAngles(self):
         """Gets the motor angles at the current moment
         Returns:
@@ -459,6 +474,7 @@ class Phantomx:
     #                                                     positionGains=[1]*18,
     #                                                     velocityGains=[1]*18
     #                                                     )
+    #     return self.GetTrueMotorTorques()
         
     def ApplyAction(self, motor_commands):
 

@@ -74,7 +74,7 @@ if __name__ == "__main__":
     # model = PPO.load(log_dir + "zip/ppo_phantomx_trackvelLOG-38", env=env)
     # model = PPO.load(log_dir + "model/modelVxLeakyRelu26_17600000", env=env)
 
-    env.set_goal_state([0.09, 0.0, 0.0])
+    env.set_goal_state([0.21, 0.0, 0.0])
     obs = env.reset()
 
     # InitModules()
@@ -110,7 +110,8 @@ if __name__ == "__main__":
         
         # # 给定action三足步态，髋关节为映射系数，膝、踝关节为映射系数变化量，检验模型直接注释这句代码。
         # action = [0.523599, 0.523599, 0.523599, -0.523599, -0.523599, -0.523599, 0, 0, 0, 0, 0, 0]
-        action = [0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.25, 0.25, 0.25, -0.25, -0.25, -0.25]
+        # action = [1, 1, 1, -1, -1, -1, 1, 1, 1, -1, -1, -1]
+        # action = [0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.25, 0.25, 0.25, -0.25, -0.25, -0.25]
         # action = [0.4, 0.4, 0.4, -0.4, -0.4, -0.4, 0, 0, 0, 0, 0, 0]
 
         # # 给action噪声

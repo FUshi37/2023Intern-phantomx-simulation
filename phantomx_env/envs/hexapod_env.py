@@ -34,6 +34,19 @@ DT = 0.01
 
 current_path = os.getcwd()
 
+def unit_vector(vector):
+	""" Returns the unit vector of the vector.  """
+	return vector / np.linalg.norm(vector)
+
+def angle_between(v1, v2):
+	""" Returns the angle in radians between vectors 'v1' and 'v2' """
+	v1_u = unit_vector(v1)
+	v2_u = unit_vector(v2)
+	return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+def rotation_matrix(theta):
+	return np.array([ [np.cos(theta), -np.sin(theta) ], [np.sin(theta), np.cos(theta)] ])
+
 class LimitedList:
     def __init__(self, limit):
         self.limit = limit
@@ -63,10 +76,10 @@ class PhantomxGymEnv(gym.Env):
                  x_velocity_weight = 1.5*DT,# 26  #x方向速度跟随奖励项系数
                  y_velocity_weight = 0.5*DT,# 2   #y方向速度跟随奖励项系数
                  yaw_velocity_weight = 0.5*DT,# 2 #yaw角方向速度跟随奖励项系数
-                 height_weight = 0.5*DT,# 5        #高度速度惩罚项系数
+                 height_weight = 0.1*DT,# 5        #高度速度惩罚项系数
                  shakevel_weight = 0.5*DT,# 5      #抖动速度惩罚项系数
-                 energy_weight = 1.0*DT,# 0.1     #作功惩罚项系数
-                 action_rate = 0.0, # 1        #action变化率惩罚项系数
+                 energy_weight = 0.75*DT,# 0.1     #作功惩罚项系数
+                 action_rate = 1.0*DT, # 1        #action变化率惩罚项系数
                  yaw_weight = 0.0, # 3          #yaw角度惩罚项系数
                  hard_reset=True,
                  phantomx_urdf_root = current_path + "/hexapod_34/urdf"):
@@ -91,7 +104,7 @@ class PhantomxGymEnv(gym.Env):
         self._distance_limit = distance_limit
         self._forward_reward_cap = forward_reward_cap
         self._time_step = 1.0 / FREC
-        self._max_episode_steps = 1024        
+        self._max_episode_steps = 94*5-1 #1024      
         self._last_reward = -np.inf
         self._cumulative_reward = 0
 
@@ -185,6 +198,8 @@ class PhantomxGymEnv(gym.Env):
         # self._last_base_position = self.phantomx.GetBasePosition()
         self._last_motor_angle = self.phantomx.GetTrueMotorAngles()
 
+        # self._prev_pos_to_goal, _ = self.get_distance_and_angle_to_goal()
+
         self._pybullet_client.resetDebugVisualizerCamera(self._cam_dist, self._cam_yaw,
                                                     self._cam_pitch, self.phantomx.GetBasePosition())
         
@@ -231,7 +246,7 @@ class PhantomxGymEnv(gym.Env):
 
         # 100HZ控制帧率，储存每个step中的作功、速度相关数据用于后续reward计算
         for i in range(ACTION_REPEATE):
-            self.phantomx.Step(motorcommand)
+            # self.phantomx.Step(motorcommand)
             # self._dt_motor_torques.append(self.phantomx.GetTrueMotorTorques())
             self._dt_motor_torques.append(self.phantomx.Step(motorcommand))
             self._dt_motor_velocities.append(self.phantomx.GetTrueMotorVelocities())
@@ -239,7 +254,7 @@ class PhantomxGymEnv(gym.Env):
             self.drift_reward_list.add_element(self.phantomx.GetTrueBodyLinearVelocity()[1])
             self.yaw_reward_list.add_element(self.phantomx.GetTrueBodyAngularVelocity()[2])
             # print("motor torques:", self.phantomx.GetTrueMotorTorques())
-
+            # print("motor torque", self._dt_motor_torques)
 
         
 
@@ -280,8 +295,8 @@ class PhantomxGymEnv(gym.Env):
 	    #重新初始化
         
         # 初始化跟随速度目标状态self._goal_state
-        self._goal_state[0] = 0.15
-        self._goal_state[1] = 0
+        self._goal_state[0] = 0.21 #= np.random.uniform(0.1, 0.3)
+        self._goal_state[1] = 0 #= np.random.uniform(0.1, 0.3)
         self._goal_state[2] = 0
 
         # 在test时接收外部给定的目标状态
@@ -355,6 +370,8 @@ class PhantomxGymEnv(gym.Env):
 
         self.phantomx.Reset(reload_urdf=False)
 
+        # self._reset_goal()
+
         self._last_motor_angle = self.phantomx.GetTrueMotorAngles()
         self._env_step_counter = 0
         self._last_base_position = [0, 0, 0.17]
@@ -367,6 +384,8 @@ class PhantomxGymEnv(gym.Env):
         self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_RENDERING, 1)
 
         self._cumulative_reward = 0
+
+        # print("reset done")
 
         return np.array(self._get_observation())
 		
@@ -463,8 +482,69 @@ class PhantomxGymEnv(gym.Env):
         #     return 0.05
         return desired_x / 3 * 2
 
-
     def _reward(self, observations, action):
+        # reward = self._reward_flag_run()
+        reward = self._reward_veltrack(observations, action)
+        # reward = self._reward_fwd_locomotion(des_vel_x=0.09)
+        # reward = self._reward_stay()
+        
+        return reward
+
+    def _reward_stay(self):
+        current_pos = self.phantomx.GetBasePosition()
+        yaw = self.phantomx.GetBaseOrientationRollPitchYaw()[2]
+        roll = self.phantomx.GetBaseOrientationRollPitchYaw()[0]
+        pitch = self.phantomx.GetBaseOrientationRollPitchYaw()[1]
+
+        yaw = yaw + np.pi / 2
+        if yaw > np.pi:
+            yaw = yaw - 2 * np.pi
+
+        stay_reward = self.reward_function(0, current_pos[0], False) + self.reward_function(0, current_pos[1], False)
+
+        yaw_reward = self.penalty_function(0, yaw, True)
+
+        height_reward = self.penalty_function(0.14, current_pos[2], False)
+
+        energy_reward = 0
+        for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
+            energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
+
+        alive_reward = 0
+        if self.is_fallen():
+            alive_reward = -100
+        # elif self._env_step_counter >= self._max_episode_steps:
+        #     alive_reward = 100
+        # else:
+        #     alive_reward = 0
+        else:
+            alive_reward = self._env_step_counter
+
+        return DT*(stay_reward + yaw_reward + height_reward - energy_reward + alive_reward)
+
+    def _reward_fwd_locomotion(self, des_vel_x=0.5):
+        """Learn forward locomotion at a desired velocity. """
+        # track the desired velocity 
+        vel_tracking_reward = 0.05 * np.exp( -1/ 0.25 *  (self.phantomx.GetBaseLinearVelocity()[0] - des_vel_x)**2 )
+        # minimize yaw (go straight)
+        yaw_reward = -0.2 * np.abs(self.phantomx.GetBaseOrientationRollPitchYaw()[2]) 
+        # don't drift laterally 
+        drift_reward = -0.01 * abs(self.phantomx.GetBasePosition()[1]) 
+        # minimize energy 
+        energy_reward = 0 
+        for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
+            energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
+
+        reward = vel_tracking_reward \
+                + yaw_reward \
+                + drift_reward \
+                - 0.01 * energy_reward \
+                - 0.1 * np.linalg.norm(self.phantomx.GetBaseOrientation() - np.array([0,0,0,1]))
+
+        # return max(reward,0) # keep rewards positive
+        return reward
+
+    def _reward_veltrack(self, observations, action):
         current_goal_state = observations[0:3] * 1
         current_CPG_data = observations[3:7] * 4
         current_orientation = observations[7:11] * 1
@@ -641,6 +721,15 @@ class PhantomxGymEnv(gym.Env):
         # elif yaw_penalty < -5 / self._objective_weights[7]:
         #     yaw_penalty = -5 / self._objective_weights[7]
 
+        # if self._env_step_counter < LISTLEN / 2:
+        #     x_velocity_reward /= 2
+        #     y_velocity_reward /= 2
+        #     yaw_velocity_reward /= 2
+        #     height_reward /= 2
+        #     shakevel_reward /= 2
+        #     energy_reward /= 2
+        #     action_rate_reward /= 2
+        #     yaw_penalty /= 2
 
         objectives = [x_velocity_reward, y_velocity_reward, yaw_velocity_reward, height_reward, shakevel_reward, energy_reward, action_rate_reward, yaw_penalty]        
         weighted_objectives = [o * w for o, w in zip(objectives, self._objective_weights)]
@@ -682,8 +771,8 @@ class PhantomxGymEnv(gym.Env):
         # observation.extend((tuple)(elem / 4.0 for elem in self._data[0, :]))
         observation.extend((tuple)(elem / 4.0 for elem in self._CPG_obs[0, :])) # 4-7 # CPG数据
         observation.extend((self.phantomx.GetBaseOrientation())) # 8-11 # 机器人基体姿态
-        observation.extend((tuple)(elem / 100.0 for elem in (self.phantomx.GetTrueBodyLinearVelocity())))# 2 # 12-14 # 机器人基体线速度
-        observation.extend((tuple)(elem / 100.0 for elem in (self.phantomx.GetTrueBodyAngularVelocity())))# 7 # 15-17 # 机器人基体角速度
+        observation.extend((tuple)(elem / 10.0 for elem in (self.phantomx.GetTrueBodyLinearVelocity())))# 2 # 12-14 # 机器人基体线速度
+        observation.extend((tuple)(elem / 30.0 for elem in (self.phantomx.GetTrueBodyAngularVelocity())))# 7 # 15-17 # 机器人基体角速度
         observation.extend((tuple)(elem / 5.0 for elem in (self.phantomx.GetTrueMotorAngles()))) # 18-35 # 关节角度
         # observation.extend((tuple)(elem / 20.0 for elem in self.))# 18-35
         # observation.extend((tuple)(elem / 20.0 for elem in self.phantomx.GetTrueMotorVelocities()))
@@ -735,9 +824,9 @@ class PhantomxGymEnv(gym.Env):
         local_up = rot_mat[6:]
         pos = self.phantomx.GetBasePosition()
         heigh = self.phantomx.GetBaseHigh()
+        roll = self.phantomx.GetBaseOrientationRollPitchYaw()[0]
         # return (np.dot(np.asarray([0, 0, 1]), np.asarray(local_up)) < 0.85 or heigh < 0.06)
-        return (heigh < 0.1)
-
+        return (heigh < 0.1) or heigh > 0.3 or (abs(roll) > 2.5)
     def _get_observation_upper_bound(self):
         """Get the upper bound of the observation.
         """
@@ -818,44 +907,73 @@ class PhantomxGymEnv(gym.Env):
     def get_y_bias_reward(self, current_base_position):
         return self.reward_function(0, current_base_position[1], False)
 
+    def normal_walk_reward(self):
+        pass
 
-    # def get_distance_and_angle_to_goal(self):
+    # def get_distance_and_angle_to_goal(self, aim_pos, aim_eul):
     #     """ Helper to return distance and angle to current goal location. """
-    # # current object location
-    #     base_pos = self.phantomx.GetBasePosition()
-    #     yaw = self.phantomx.GetBaseOrientationRollPitchYaw()[2]
-    #     goal_vec = self._goal_location
-    #     dist_to_goal = np.linalg.norm(base_pos[0:2]-goal_vec)
-
-    #     # angle to goal (from current heading)
-    #     body_dir_vec = np.matmul( rotation_matrix(yaw), np.array([[1],[0]]) )
-    #     body_goal_vec = goal_vec - base_pos[0:2]
-    #     body_dir_vec = body_dir_vec.reshape(2,)
-    #     body_goal_vec = body_goal_vec.reshape(2,)
-
-    #     Vn = unit_vector( np.array([0,0,1]) )
-    #     c = np.cross( np.hstack([body_dir_vec,0]), np.hstack([body_goal_vec,0])  )
-    #     angle = angle_between(body_dir_vec, body_goal_vec)
-    #     angle = angle * np.sign( np.dot( Vn , c ) )
-
-    #     return dist_to_goal, angle
-  
-    # def _reward_flag_run(self):
-    #     """ Learn to move towards goal location. """
-    #     curr_dist_to_goal, angle = self.get_distance_and_angle_to_goal()
-
-    #     # minimize distance to goal (we want to move towards the goal)
-    #     dist_reward = 10 * ( self._prev_pos_to_goal - curr_dist_to_goal)
-    #     # minimize yaw deviation to goal (necessary?)
-    #     yaw_reward = 0 # -0.01 * np.abs(angle) 
-
-    #     # minimize energy 
-    #     energy_reward = 0 
-    #     for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
-    #     energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
-
-    #     reward = dist_reward \
-    #             + yaw_reward \
-    #             - 0.001 * energy_reward 
+    #     current_position = self.phantomx.GetBasePosition()
+    #     current_orientation = self.phantomx.GetBaseOrientation()
+    #     roll, pitch, yaw = quaternion_to_euler(current_orientation)
+    #     current_euler = np.array([roll, pitch, yaw])
         
-    #     return max(reward,0) # keep rewards positive
+    #     dist_to_goal = np.linalg.norm(current_position[0:2]-aim_pos[0:2])
+    #     angle_to_goal = np.
+    def _reset_goal(self):
+        """Reset goal location. """
+        try:
+            if self.goal_id is not None: 
+                self._pybullet_client.removeBody(self.goal_id)
+        except:
+            pass
+        self._goal_location = 6 * (np.random.random((2,)) - 0.5) 
+        self._goal_location += self.phantomx.GetBasePosition()[0:2]
+        sh_colBox = self._pybullet_client.createCollisionShape(self._pybullet_client.GEOM_BOX,
+            halfExtents=[0.2,0.2,0.2])
+        orn = self._pybullet_client.getQuaternionFromEuler([0,0,0])
+        self.goal_id=self._pybullet_client.createMultiBody(
+                            baseMass=0,
+                            baseCollisionShapeIndex = sh_colBox,
+                            basePosition = [self._goal_location[0],self._goal_location[1],0.6],
+                            baseOrientation=orn)
+
+    def get_distance_and_angle_to_goal(self):
+        """ Helper to return distance and angle to current goal location. """
+    # current object location
+        base_pos = self.phantomx.GetBasePosition()
+        yaw = self.phantomx.GetBaseOrientationRollPitchYaw()[2]
+        goal_vec = self._goal_location
+        dist_to_goal = np.linalg.norm(base_pos[0:2]-goal_vec)
+
+        # angle to goal (from current heading)
+        body_dir_vec = np.matmul( rotation_matrix(yaw), np.array([[1],[0]]) )
+        body_goal_vec = goal_vec - base_pos[0:2]
+        body_dir_vec = body_dir_vec.reshape(2,)
+        body_goal_vec = body_goal_vec.reshape(2,)
+
+        Vn = unit_vector( np.array([0,0,1]) )
+        c = np.cross( np.hstack([body_dir_vec,0]), np.hstack([body_goal_vec,0])  )
+        angle = angle_between(body_dir_vec, body_goal_vec)
+        angle = angle * np.sign( np.dot( Vn , c ) )
+
+        return dist_to_goal, angle
+  
+    def _reward_flag_run(self):
+        """ Learn to move towards goal location. """
+        curr_dist_to_goal, angle = self.get_distance_and_angle_to_goal()
+
+        # minimize distance to goal (we want to move towards the goal)
+        dist_reward = 10 * ( self._prev_pos_to_goal - curr_dist_to_goal)
+        # minimize yaw deviation to goal (necessary?)
+        yaw_reward = 0 # -0.01 * np.abs(angle) 
+
+        # minimize energy 
+        energy_reward = 0 
+        for tau,vel in zip(self._dt_motor_torques,self._dt_motor_velocities):
+            energy_reward += np.abs(np.dot(tau,vel)) * self._time_step
+
+        reward = dist_reward \
+                + yaw_reward \
+                - 0.001 * energy_reward 
+        
+        return max(reward,0) # keep rewards positive
